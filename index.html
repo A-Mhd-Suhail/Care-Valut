@@ -12,14 +12,14 @@
 
 <!-- ================= AUTH SCREEN ================= -->
 <section id="screen-auth">
-  <div class="auth-top">
-    <select id="themeSelAuth" class="theme-select" title="Select Theme">
+  <div class="auth-top" style="display:flex;gap:8px">
+    <select id="langSelAuth" class="theme-select" title="Language"></select>
+    <select id="themeSelAuth" class="theme-select" title="Theme">
       <option value="light">☀️ White &amp; Blue</option>
       <option value="dark">🌙 Dark Neon</option>
       <option value="pink">💗 Pink</option>
     </select>
   </div>
-
   <div class="auth-wrap">
     <div class="auth-hero">
       <div class="brand-big"><span class="logo-heart">🛡️</span> Care Vault</div>
@@ -27,9 +27,9 @@
       <p class="usp">Care Vault transforms fragmented medical records into one secure, longitudinal patient case history.</p>
       <ul class="hero-points">
         <li>📋 Patient fills case → 🩺 Doctor verifies → ✅ Patient sees verified information</li>
-        <li>💊 Medicine Verification — patient-reported vs doctor-verified trust layer</li>
-        <li>🔐 Consent-based access with a complete audit trail</li>
-        <li>🗺️ Doctor live location map + 🚑 Emergency Mode</li>
+        <li>💊 Medicine verification — red pending → green "Ready to take ✓"</li>
+        <li>🔐 Privacy &amp; access control • 🎟️ Smart queue • 💰 Real-time billing</li>
+        <li>🗺️ Doctor live map • 📞 Call / 💬 Message • 🚑 Emergency Mode</li>
       </ul>
       <button class="btn danger big" data-act="auth-emergency">🚑 Emergency Access</button>
       <div class="demo-row">
@@ -46,7 +46,6 @@
         <button id="tabReg" class="tab">Register</button>
       </div>
 
-      <!-- LOGIN -->
       <form id="formLogin" class="auth-form">
         <label class="label">Login as</label>
         <select id="loginRole" class="input">
@@ -59,10 +58,9 @@
         <label class="label">Password</label>
         <input id="loginPass" class="input" type="password" placeholder="••••••••" required>
         <button class="btn primary big" type="submit">Login →</button>
-        <p class="hint">New here? Open the Register tab, choose a role and sign up. All data is saved in real time on Firebase.</p>
+        <p class="hint">New here? Open the Register tab, choose a role and sign up.</p>
       </form>
 
-      <!-- REGISTER -->
       <form id="formReg" class="auth-form hidden" novalidate>
         <div class="reg-pills">
           <button type="button" class="reg-pill active" data-regrole="patient">👤 Patient</button>
@@ -70,11 +68,12 @@
           <button type="button" class="reg-pill" data-regrole="hospital">🏥 Hospital</button>
         </div>
 
-        <!-- PATIENT REGISTRATION -->
         <div id="regPatient">
           <div class="row2">
-            <div><label class="label">Full Name *</label><input id="rpName" class="input"></div>
-            <div><label class="label">Date of Birth *</label><input id="rpDob" type="date" class="input"></div>
+            <div><label class="label">Full Name *</label>
+              <div class="mic-row"><input id="rpName" class="input"><button type="button" class="mic" data-act="mic" data-target="rpName" title="Voice input">🎙️</button></div></div>
+            <div><label class="label">Date of Birth *</label>
+              <div class="dob-row"><select id="rpDobD" class="input"></select><select id="rpDobM" class="input"></select><select id="rpDobY" class="input"></select></div></div>
           </div>
           <div class="row2">
             <div><label class="label">Gender *</label>
@@ -87,7 +86,7 @@
             <div><label class="label">Aadhaar Number *</label><input id="rpAadhaar" class="input" placeholder="12-digit" maxlength="12"></div>
           </div>
           <label class="label">Address</label>
-          <textarea id="rpAddress" class="input" rows="2"></textarea>
+          <div class="mic-row"><textarea id="rpAddress" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="rpAddress" title="Voice input">🎙️</button></div>
           <div class="row2">
             <div><label class="label">Emergency Contact Name</label><input id="rpEName" class="input"></div>
             <div><label class="label">Emergency Contact Phone</label><input id="rpEPhone" class="input"></div>
@@ -97,19 +96,18 @@
             <div><label class="label">Weight (kg)</label><input id="rpWeight" type="number" class="input"></div>
           </div>
           <label class="label">⚠️ Allergies (medicine / food / other)</label>
-          <textarea id="rpAllergies" class="input" rows="2" placeholder="e.g. Penicillin (medicine), Dust (other)"></textarea>
+          <div class="mic-row"><textarea id="rpAllergies" class="input" rows="2" placeholder="e.g. Penicillin (medicine), Dust (other)"></textarea><button type="button" class="mic" data-act="mic" data-target="rpAllergies" title="Voice input">🎙️</button></div>
           <label class="label">🏥 Existing Conditions / Major Diseases</label>
-          <textarea id="rpConditions" class="input" rows="2" placeholder="e.g. Type 2 Diabetes (2021), Hypertension (2022)"></textarea>
+          <div class="mic-row"><textarea id="rpConditions" class="input" rows="2" placeholder="e.g. Type 2 Diabetes (2021), Hypertension (2022)"></textarea><button type="button" class="mic" data-act="mic" data-target="rpConditions" title="Voice input">🎙️</button></div>
           <label class="label">🔪 Previous Operations / Surgeries</label>
-          <textarea id="rpSurgeries" class="input" rows="2" placeholder="Surgery | Year | Hospital | Doctor | Reason (one per line)"></textarea>
+          <div class="mic-row"><textarea id="rpSurgeries" class="input" rows="2" placeholder="Surgery | Year | Hospital | Doctor | Reason (one per line)"></textarea><button type="button" class="mic" data-act="mic" data-target="rpSurgeries" title="Voice input">🎙️</button></div>
           <label class="label">🚗 Any Accidents?</label>
-          <textarea id="rpAccidents" class="input" rows="2" placeholder="e.g. Two-wheeler accident 2016 — arm fracture, treated at City Hospital"></textarea>
+          <div class="mic-row"><textarea id="rpAccidents" class="input" rows="2" placeholder="e.g. Two-wheeler accident 2016 — arm fracture"></textarea><button type="button" class="mic" data-act="mic" data-target="rpAccidents" title="Voice input">🎙️</button></div>
           <label class="label">👨‍👩‍👦 Family Medical History</label>
-          <textarea id="rpFamily" class="input" rows="2" placeholder="e.g. Father — Diabetes; Grandmother — Hypertension"></textarea>
+          <div class="mic-row"><textarea id="rpFamily" class="input" rows="2" placeholder="e.g. Father — Diabetes; Grandmother — BP"></textarea><button type="button" class="mic" data-act="mic" data-target="rpFamily" title="Voice input">🎙️</button></div>
           <div class="row2">
-            <div><label class="label">Annual Income (₹) — used for scheme eligibility check</label><input id="rpIncome" type="number" class="input" placeholder="optional"></div>
-            <div><label class="label">Language</label>
-              <select id="rpLang" class="input"><option>English</option><option>Hindi</option></select></div>
+            <div><label class="label">Annual Income (₹) — for scheme check</label><input id="rpIncome" type="number" class="input" placeholder="optional"></div>
+            <div><label class="label">Language</label><select id="rpLang" class="input"><option>English</option><option>Hindi</option></select></div>
           </div>
           <label class="label">Email *</label><input id="rpEmail" type="email" class="input">
           <label class="label">Password *</label><input id="rpPass" type="password" class="input" placeholder="minimum 6 characters">
@@ -119,9 +117,9 @@
           </div>
         </div>
 
-        <!-- DOCTOR REGISTRATION -->
         <div id="regDoctor" class="hidden">
-          <label class="label">Doctor Name *</label><input id="rdName" class="input">
+          <label class="label">Doctor Name *</label>
+          <div class="mic-row"><input id="rdName" class="input"><button type="button" class="mic" data-act="mic" data-target="rdName" title="Voice input">🎙️</button></div>
           <div class="row2">
             <div><label class="label">Specialization *</label><input id="rdSpec" class="input" placeholder="e.g. General Surgery"></div>
             <div><label class="label">Experience (years)</label><input id="rdExp" type="number" class="input"></div>
@@ -129,21 +127,21 @@
           <label class="label">Hospital *</label><input id="rdHospital" class="input">
           <div class="row2">
             <div><label class="label">Medical Registration No *</label><input id="rdReg" class="input"></div>
-            <div><label class="label">Phone</label><input id="rdPhone" class="input"></div>
+            <div><label class="label">Phone (patients can call you)</label><input id="rdPhone" class="input"></div>
           </div>
           <label class="label">Email *</label><input id="rdEmail" type="email" class="input">
           <label class="label">Password *</label><input id="rdPass" type="password" class="input" placeholder="minimum 6 characters">
           <button class="btn primary big" type="submit">Register as Doctor</button>
         </div>
 
-        <!-- HOSPITAL REGISTRATION -->
         <div id="regHospital" class="hidden">
           <label class="label">Hospital Name *</label><input id="rhName" class="input">
           <div class="row2">
             <div><label class="label">Admin Name *</label><input id="rhAdmin" class="input"></div>
             <div><label class="label">Phone</label><input id="rhPhone" class="input"></div>
           </div>
-          <label class="label">Address</label><textarea id="rhAddress" class="input" rows="2"></textarea>
+          <label class="label">Address</label>
+          <div class="mic-row"><textarea id="rhAddress" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="rhAddress" title="Voice input">🎙️</button></div>
           <label class="label">License No</label><input id="rhLicense" class="input">
           <label class="label">Email *</label><input id="rhEmail" type="email" class="input">
           <label class="label">Password *</label><input id="rhPass" type="password" class="input" placeholder="minimum 6 characters">
@@ -169,16 +167,19 @@
   <main class="main">
     <header class="topbar">
       <button class="icon-btn burger" data-act="burger">☰</button>
+      <button class="icon-btn" data-act="nav-back" title="Back">⬅️</button>
+      <button class="icon-btn" data-act="nav-home" title="Home">🏠</button>
       <h2 id="pageTitle">Dashboard</h2>
       <div class="top-actions">
-        <input id="topSearch" class="input search hidden" placeholder="🔍 Search surgeries, medicines, reports…">
+        <input id="topSearch" class="input search hidden" placeholder="🔍 Search…">
+        <select id="langSel" class="theme-select" title="Language"></select>
         <select id="themeSel" class="theme-select" title="Theme">
           <option value="light">☀️ White &amp; Blue</option>
           <option value="dark">🌙 Dark Neon</option>
           <option value="pink">💗 Pink</option>
         </select>
         <button class="icon-btn bell" data-act="bell">🔔<span id="bellDot" class="dot hidden"></span></button>
-        <button class="icon-btn" data-act="go-settings">👤</button>
+        <button class="icon-btn" data-act="go-settings" title="My profile">👤</button>
       </div>
       <div id="bellDrop" class="bell-drop hidden"></div>
     </header>
@@ -191,37 +192,21 @@
           <div><h3 id="dGreet">Good Morning 👋</h3><p class="muted">Take care and get well soon! • Health ID: <b id="dHid" class="hid-chip">CV-XXXXXX</b></p></div>
           <button class="btn danger" data-act="emergency">🚑 EMERGENCY</button>
         </div>
-
         <div id="reviewBanner" class="banner hidden"></div>
-
         <div class="grid2">
           <div class="card recovery-card">
             <div class="reco-ico">💗</div>
-            <div style="flex:1">
-              <h4>Recovery Progress</h4>
-              <p class="muted sm-txt" id="recoMsg">You are doing great! Keep following your schedule.</p>
-            </div>
+            <div style="flex:1"><h4>Recovery Progress</h4><p class="muted sm-txt" id="recoMsg">You are doing great!</p></div>
             <div id="recoRing"></div>
           </div>
-          <div class="card">
-            <h4>🔔 Upcoming Appointment</h4>
-            <div id="nextApptCard" class="kv muted">No upcoming appointments.</div>
-            <button class="btn ghost sm" data-nav="p-appts" style="margin-top:8px">View Details</button>
-          </div>
+          <div class="card"><h4>🔔 Upcoming Appointment</h4><div id="nextApptCard" class="kv muted">No upcoming appointments.</div><button class="btn ghost sm" data-nav="p-appts" style="margin-top:8px">View Details</button></div>
         </div>
-
         <div class="grid4mini" id="miniStats"></div>
-
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <h4>Today's Schedule</h4>
-            <button class="btn ghost sm" data-nav="p-upcoming">View Full Schedule →</button>
-          </div>
+          <h4>Today's Schedule <span class="chip blue">🎟️ Queue included</span></h4>
           <div id="todaySchedule" class="sched"></div>
         </div>
-
         <div id="followBanner" class="banner amber hidden"></div>
-
         <div class="card quick">
           <h4>Quick Actions</h4>
           <div class="quick-grid">
@@ -229,57 +214,43 @@
             <button class="quick-btn" data-nav="p-doctors">💬<span>Talk to Doctor</span></button>
             <button class="quick-btn" data-nav="p-vitals">📈<span>Health Tracking</span></button>
             <button class="quick-btn" data-nav="p-reports">📁<span>Medical Records</span></button>
-            <button class="quick-btn" data-nav="p-newcase">📝<span>New Case</span></button>
-            <button class="quick-btn" data-nav="p-upcoming">🗓️<span>Upcoming Events</span></button>
-            <button class="quick-btn" data-nav="p-map">🗺️<span>Doctor Map</span></button>
+            <button class="quick-btn" data-nav="p-case">📝<span>New / My Case</span></button>
             <button class="quick-btn" data-nav="p-qr">📱<span>My QR</span></button>
           </div>
         </div>
-
         <div class="grid3">
-          <div class="card">
-            <h4>❤️ Health Overview</h4>
-            <div id="healthOverview" class="kv"></div>
-            <button class="btn ghost sm" data-nav="p-case">View Full Case →</button>
-          </div>
-          <div class="card">
-            <h4>🧠 AI Scheme Eligibility <span class="chip blue">AI-assisted</span></h4>
-            <div id="schemeList" class="kv muted">Checking…</div>
-          </div>
-          <div class="card">
-            <h4>📊 Care Status</h4>
-            <div id="careBars"></div>
-          </div>
+          <div class="card"><h4>❤️ Health Overview</h4><div id="healthOverview" class="kv"></div><button class="btn ghost sm" data-nav="p-case">View Full Case →</button></div>
+          <div class="card"><h4>🧠 AI Scheme Eligibility <span class="chip blue">AI-assisted</span></h4><div id="schemeList" class="kv muted">Checking…</div></div>
+          <div class="card"><h4>📊 Care Status</h4><div id="careBars"></div></div>
         </div>
-
         <div class="grid3">
           <div class="card"><h4>💊 Active Medicines</h4><ul id="medMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-meds">All Medicines →</button></div>
           <div class="card"><h4>🧪 Recent Reports</h4><ul id="repMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-reports">All Reports →</button></div>
-          <div class="card"><h4>🗓️ Upcoming Events</h4><ul id="evMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-upcoming">View All →</button></div>
+          <div class="card"><h4>💰 Billing</h4><div id="billMini" class="kv muted">No bills yet.</div><button class="btn ghost sm" data-nav="p-billing">Billing History →</button></div>
         </div>
-
         <div id="searchResults" class="card hidden"><h4>🔍 Search Results</h4><div id="searchResultsBody"></div></div>
       </section>
 
-      <!-- ============ PATIENT: UPCOMING EVENTS ============ -->
+      <!-- ============ PATIENT: UPCOMING ============ -->
       <section id="pg-p-upcoming" class="page hidden">
         <h3>🗓️ Upcoming Events</h3>
-        <p class="muted">Everything scheduled ahead of you — appointments, follow-up reminders and active medicines.</p>
         <div class="card"><h4>📅 Upcoming Appointments</h4><div id="upAppts" class="list"></div></div>
         <div class="card"><h4>🔔 Follow-up Reminders</h4><div id="upFollow" class="list"></div></div>
         <div class="card"><h4>💊 Active Medicines</h4><div id="upMeds" class="list"></div></div>
       </section>
 
-      <!-- ============ PATIENT: NEW CASE ============ -->
-      <section id="pg-p-newcase" class="page hidden">
+      <!-- ============ PATIENT: MY CASE (form + history merged) ============ -->
+      <section id="pg-p-case" class="page hidden">
+        <h3>📋 My Case — History &amp; New Case</h3>
+        <div id="myCaseStatus"></div>
         <div class="card">
-          <h3>📝 Case-Taking Form</h3>
-          <p class="muted">Your information goes to the doctor. Once the doctor verifies it, it appears on your profile as <b class="green">Doctor Verified</b>.</p>
+          <h4>📝 New Case <span id="draftNote" class="chip blue"></span></h4>
+          <p class="muted">Your answers auto-save as a draft while you type, then go to the doctor when you submit.</p>
           <label class="label">1️⃣ Chief Complaint — "What brings you here?" *</label>
-          <div class="mic-row"><textarea id="ncComplaint" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncComplaint" title="Voice input">🎙️</button></div>
+          <div class="mic-row"><textarea id="ncComplaint" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncComplaint">🎙️</button></div>
           <label class="label">2️⃣ Symptoms</label>
-          <div class="mic-row"><textarea id="ncSymptoms" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncSymptoms" title="Voice input">🎙️</button></div>
-          <label class="label">🧍 Symptom Area (body map)</label>
+          <div class="mic-row"><textarea id="ncSymptoms" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncSymptoms">🎙️</button></div>
+          <label class="label">🧍 Symptom Area</label>
           <div id="ncAreas" class="chips">
             <button type="button" class="chip" data-area="Head">🧠 Head</button>
             <button type="button" class="chip" data-area="Chest">🫁 Chest</button>
@@ -292,27 +263,28 @@
             <div><label class="label">3️⃣ Since when?</label><input id="ncDuration" class="input" placeholder="e.g. 3 days"></div>
             <div><label class="label">Severity</label><select id="ncSeverity" class="input"><option>Mild</option><option>Moderate</option><option>Severe</option></select></div>
           </div>
-          <label class="label">4️⃣ Previous treatment taken</label><textarea id="ncPrevTx" class="input" rows="2"></textarea>
-          <label class="label">5️⃣ Existing conditions</label><textarea id="ncExisting" class="input" rows="2" placeholder="Auto-filled from your profile — correct if needed"></textarea>
-          <label class="label">6️⃣ Current medicines</label><textarea id="ncMeds" class="input" rows="2" placeholder="Auto-filled from your profile"></textarea>
-          <label class="label">7️⃣ Allergies</label><textarea id="ncAllergy" class="input" rows="2"></textarea>
-          <label class="label">8️⃣ Previous surgery</label><textarea id="ncSurgery" class="input" rows="2"></textarea>
-          <label class="label">9️⃣ Family history</label><textarea id="ncFamily" class="input" rows="2"></textarea>
-          <label class="label">🔟 Other relevant information / Questions for the doctor</label><textarea id="ncOther" class="input" rows="2"></textarea>
+          <label class="label">4️⃣ Previous treatment taken</label>
+          <div class="mic-row"><textarea id="ncPrevTx" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncPrevTx">🎙️</button></div>
+          <label class="label">5️⃣ Existing conditions</label>
+          <div class="mic-row"><textarea id="ncExisting" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncExisting">🎙️</button></div>
+          <label class="label">6️⃣ Current medicines</label>
+          <div class="mic-row"><textarea id="ncMeds" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncMeds">🎙️</button></div>
+          <label class="label">7️⃣ Allergies</label>
+          <div class="mic-row"><textarea id="ncAllergy" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncAllergy">🎙️</button></div>
+          <label class="label">8️⃣ Previous surgery</label>
+          <div class="mic-row"><textarea id="ncSurgery" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncSurgery">🎙️</button></div>
+          <label class="label">9️⃣ Family history</label>
+          <div class="mic-row"><textarea id="ncFamily" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncFamily">🎙️</button></div>
+          <label class="label">🔟 Other information / Questions</label>
+          <div class="mic-row"><textarea id="ncOther" class="input" rows="2"></textarea><button type="button" class="mic" data-act="mic" data-target="ncOther">🎙️</button></div>
           <button class="btn primary big" data-act="submit-case">SUBMIT CASE TO DOCTOR ➜</button>
         </div>
-        <div id="caseStatusCard"></div>
-      </section>
-
-      <!-- ============ PATIENT: MY CASE ============ -->
-      <section id="pg-p-case" class="page hidden">
-        <h3>📋 My Case</h3>
-        <div id="myCaseStatus"></div>
+        <div class="card"><h4>📚 All My Cases</h4><div id="caseHistory" class="list"></div></div>
         <div class="grid2">
           <div class="card"><h4>👤 Personal Details</h4><div id="secPersonal" class="kv"></div><span class="chip blue">🟦 Patient reported</span></div>
           <div class="card"><h4>🩺 Medical History</h4><div id="secMedical" class="kv"></div><span class="chip blue">🟦 Patient reported</span></div>
-          <div class="card"><h4>⚠️ Allergy History</h4><div id="secAllergy" class="kv"></div><span class="chip blue">🟦 Patient reported</span></div>
-          <div class="card"><h4>🔪 Surgery History</h4><div id="secSurgery" class="kv"></div><span class="chip blue">🟦 Patient reported</span></div>
+          <div class="card"><h4>⚠️ Allergy History</h4><div id="secAllergy" class="kv"></div></div>
+          <div class="card"><h4>🔪 Surgery History</h4><div id="secSurgery" class="kv"></div></div>
           <div class="card"><h4>💊 Medication History</h4><ul id="secMeds" class="mini-list"></ul></div>
           <div class="card"><h4>🏥 Previous Hospital Visits</h4><ul id="secVisits" class="mini-list"></ul></div>
         </div>
@@ -322,10 +294,10 @@
       <section id="pg-p-meds" class="page hidden">
         <h3>💊 My Medicines</h3>
         <div class="card">
-          <h4>Add a medicine you take (unverified until a doctor confirms it)</h4>
+          <h4>Add a medicine (🔴 pending → doctor verifies → 🟩 Ready to take ✓)</h4>
           <div class="row4">
             <input id="mName" class="input" placeholder="Medicine name">
-            <input id="mDose" class="input" placeholder="Dosage / instructions">
+            <input id="mDose" class="input" placeholder="Dosage e.g. 1 tablet after breakfast">
             <input id="mStart" type="date" class="input">
             <input id="mDur" type="number" class="input" placeholder="Days">
           </div>
@@ -350,7 +322,6 @@
             <input id="rNote" class="input" placeholder="Note (optional)">
           </div>
           <button class="btn primary" data-act="add-report">+ Save to Vault</button>
-          <p class="hint">In this demo, document metadata is saved. File storage can be added with Firebase Storage.</p>
         </div>
         <div id="repList" class="list"></div>
       </section>
@@ -365,12 +336,12 @@
             <input id="apDate" type="date" class="input">
             <select id="apType" class="input"><option>Follow-up Checkup</option><option>Video Consultation</option><option>In-person Visit</option><option>🚨 Emergency (Triage priority)</option></select>
           </div>
-          <label class="label">Available Time <small class="muted">(already-booked slots are crossed out)</small></label>
+          <label class="label">Available Time <small class="muted">(booked slots crossed out)</small></label>
           <div id="apSlots" class="chips"></div>
           <label class="label">Reason for visit</label>
           <textarea id="apReason" class="input" rows="2"></textarea>
           <button class="btn primary" data-act="book-appt">Confirm Appointment</button>
-          <p class="hint">🛡️ Slots are locked with a Firestore ACID transaction — even if two patients click the same slot at the same millisecond, only one booking succeeds. Cancelling releases the slot.</p>
+          <p class="hint">🛡️ ACID transaction locking. Your booking gets a 🎟️ Queue number on the dashboard, in your QR, and on the doctor's screen.</p>
         </div>
         <div class="tabs sm">
           <button class="tab active" data-aptab="upcoming">Upcoming</button>
@@ -380,18 +351,14 @@
         <div id="apList" class="list"></div>
       </section>
 
-      <!-- ============ PATIENT: DOCTORS ============ -->
+      <!-- ============ PATIENT: MY DOCTORS + MAP ============ -->
       <section id="pg-p-doctors" class="page hidden">
         <h3>👨‍⚕️ My Doctors</h3>
-        <div id="docList" class="grid2"></div>
-      </section>
-
-      <!-- ============ PATIENT: DOCTOR MAP ============ -->
-      <section id="pg-p-map" class="page hidden">
-        <h3>🗺️ Doctor Live Location</h3>
-        <p class="muted">Doctors appear here only while they are <b>ON DUTY</b>. Location is removed automatically when they log out, and positions older than 6 minutes are hidden.</p>
-        <div class="card">
-          <label class="label">Select doctor</label>
+        <p class="muted">Message, call or locate your doctor — 🟢 = on duty with live location.</p>
+        <div id="docList" class="doc-grid"></div>
+        <div class="card" style="margin-top:14px">
+          <h4>🗺️ Doctor Live Location</h4>
+          <p class="muted sm-txt">Doctors appear only while <b>ON DUTY</b>. Location is deleted on logout; older than 6 minutes = hidden.</p>
           <div id="mapDocs" class="chips"></div>
           <div id="docMap"></div>
           <div id="mapInfo" class="muted sm-txt" style="margin-top:8px"></div>
@@ -401,7 +368,6 @@
       <!-- ============ PATIENT: TIMELINE ============ -->
       <section id="pg-p-timeline" class="page hidden">
         <h3>🕐 My Medical Journey</h3>
-        <p class="muted">Events update automatically — case submitted, doctor review, reports and more.</p>
         <div id="tlList" class="timeline"></div>
       </section>
 
@@ -414,7 +380,6 @@
         <div id="statCards" class="stat-grid"></div>
         <div class="card">
           <h4>Log Your Health Data</h4>
-          <p class="muted">Record your latest measurements</p>
           <div class="row4 vt-inputs">
             <div><label class="label">Temperature <small class="muted">°C</small></label><input id="vTemp" class="input" type="number" step="0.1" placeholder="e.g. 36.8"></div>
             <div><label class="label">Blood Pressure <small class="muted">mmHg</small></label><input id="vBp" class="input" placeholder="e.g. 120/80"></div>
@@ -422,7 +387,7 @@
             <div><label class="label">Weight <small class="muted">kg</small></label><input id="vWt" class="input" type="number" step="0.1" placeholder="e.g. 68"></div>
           </div>
           <label class="label">Symptoms (if any)</label>
-          <textarea id="vSym" class="input" rows="2" maxlength="200" placeholder="e.g. pain level, nausea, dizziness…"></textarea>
+          <div class="mic-row"><textarea id="vSym" class="input" rows="2" maxlength="200" placeholder="e.g. pain level, nausea…"></textarea><button type="button" class="mic" data-act="mic" data-target="vSym">🎙️</button></div>
           <div class="right muted sm-txt"><span id="symCount">0</span>/200</div>
           <label class="label">Pain Level</label>
           <div class="pain-wrap">
@@ -433,10 +398,6 @@
         </div>
         <div class="card"><h4>Recent Records</h4><div id="recentVitals" class="list"></div></div>
         <div class="card"><h4>Trends (Last 7 Records)</h4><div id="trendGrid" class="trend-grid"></div></div>
-        <div class="card tip-card">
-          <b>💡 Tip</b>
-          <p class="muted">Track your vitals regularly to help your doctor monitor your recovery better.</p>
-        </div>
       </section>
 
       <!-- ============ PATIENT: QR ============ -->
@@ -449,41 +410,47 @@
             <p class="muted" id="qrName"></p>
           </div>
           <div class="card">
-            <h4>QR Modes</h4>
-            <p><span class="chip red">🚑 Emergency Access</span><br>Scan shows only blood group, critical allergies, current medicines and emergency contact.</p>
-            <p><span class="chip blue">📖 Full Record</span><br>Requires appropriate authorization / patient consent. The full record never opens without permission.</p>
-            <button class="btn danger big" data-act="emergency">🚑 Open Emergency Mode</button>
+            <h4>What's inside this QR?</h4>
+            <div id="qrContents" class="kv muted"></div>
+            <button class="btn danger big" data-act="emergency" style="margin-top:10px">🚑 Open Emergency Mode</button>
           </div>
         </div>
       </section>
 
-      <!-- ============ PATIENT: CONSENT ============ -->
-      <section id="pg-p-consent" class="page hidden">
-        <h3>🔐 Consent Center</h3>
-        <p class="muted">"Who can see my medical record?" — you decide.</p>
-        <div id="consentList" class="list"></div>
+      <!-- ============ PATIENT: PRIVACY & ACCESS (merged) ============ -->
+      <section id="pg-p-privacy" class="page hidden">
+        <h3>🔒 Privacy &amp; Access</h3>
+        <div class="card"><h4>🔐 Consent Center</h4><p class="muted">"Who can see my medical record?" — you decide.</p><div id="consentList" class="list"></div></div>
+        <div class="card"><h4>👁️ Access History — who viewed my record?</h4><div id="accessList" class="list"></div></div>
       </section>
 
-      <!-- ============ PATIENT: ACCESS HISTORY ============ -->
-      <section id="pg-p-access" class="page hidden">
-        <h3>👁️ Who Accessed My Record?</h3>
-        <div id="accessList" class="list"></div>
+      <!-- ============ PATIENT: BILLING ============ -->
+      <section id="pg-p-billing" class="page hidden">
+        <h3>💰 Billing &amp; Budget History</h3>
+        <p class="muted">Real-time bills from doctors and hospitals — consultations, medicines, tests.</p>
+        <div class="grid3" id="pbSummary"></div>
+        <div class="card"><h4>All Bills</h4><div id="pbList" class="list"></div></div>
       </section>
 
-      <!-- ============ NOTIFICATIONS ============ -->
+      <!-- ============ NOTIFICATIONS / SETTINGS ============ -->
       <section id="pg-notifs" class="page hidden">
         <h3>🔔 Notification Center</h3>
         <button class="btn ghost sm" data-act="mark-read">Mark all as read</button>
         <div id="notifList" class="list"></div>
       </section>
 
-      <!-- ============ SETTINGS ============ -->
       <section id="pg-settings" class="page hidden">
         <h3>⚙️ Profile &amp; Settings</h3>
         <div class="grid2">
-          <div class="card"><h4>👤 My Information</h4><div id="settingsProfile"></div></div>
+          <div class="card">
+            <h4>🖼️ My Photo &amp; Identity</h4>
+            <div class="photo-row" id="photoBlock"></div>
+            <div id="settingsProfile"></div>
+          </div>
           <div class="card">
             <h4>🎨 Appearance &amp; Accessibility</h4>
+            <label class="label">Language</label>
+            <select id="setLang" class="input"></select>
             <label class="label">Theme</label>
             <select id="themeSelSet" class="input"><option value="light">☀️ White &amp; Blue</option><option value="dark">🌙 Dark Neon</option><option value="pink">💗 Pink</option></select>
             <label class="label">Text size</label>
@@ -492,29 +459,23 @@
               <button class="chip" data-act="font" data-v="md">A</button>
               <button class="chip" data-act="font" data-v="lg">A+</button>
             </div>
-            <label class="label">Language</label>
-            <select id="setLang" class="input"><option>English</option><option>Hindi</option></select>
-            <p class="hint">Use the Dark theme for high contrast. The interface is built with screen-reader friendly semantic HTML.</p>
+            <p class="hint">Photos are auto-compressed before saving. You can edit your details any time — fixed IDs (Health ID / Aadhaar / Reg No) need hospital admin help.</p>
           </div>
         </div>
       </section>
 
       <!-- ============ DOCTOR: DASHBOARD ============ -->
       <section id="pg-d-dash" class="page hidden">
-        <div class="greet"><div><h3 id="dGreetDoc">Welcome, Doctor 🩺</h3><p class="muted">"Understand the patient faster — not more data entry."</p></div>
-        <button class="btn danger" data-act="emergency">🚑 Emergency Lookup</button></div>
-
+        <div class="card welcome-strip" id="docWelcome"></div>
+        <div class="grid5mini" id="ddStats"></div>
         <div class="grid2" style="margin-bottom:14px">
           <div class="card" id="dutyCard"></div>
-          <div class="grid3" id="ddStats" style="gap:10px"></div>
+          <div class="card ai"><h4>🧠 Practice Insights</h4><div id="ddInsights" class="kv"></div></div>
         </div>
-
         <div class="grid2">
-          <div class="card"><h4>🟡 Pending Cases <small class="muted">(click a patient name for full details)</small></h4><div id="ddPending" class="list"></div></div>
+          <div class="card"><h4>🟡 Pending Cases <small class="muted">(click patient name → full details)</small></h4><div id="ddPending" class="list"></div></div>
           <div class="card"><h4>📅 Today's Appointments — Time &amp; Queue 🎟️</h4><div id="ddToday" class="list"></div></div>
         </div>
-
-        <!-- Bottom-center: Verify Medicine CTA -->
         <div class="card verify-cta" id="verifyCta"></div>
       </section>
 
@@ -528,18 +489,25 @@
         <div id="dcList" class="list"></div>
       </section>
 
-      <!-- ============ DOCTOR: MEDICINE VERIFICATION CENTER ============ -->
+      <!-- ============ DOCTOR: VERIFICATION ============ -->
       <section id="pg-d-verify" class="page hidden">
         <h3>💊 Medicine Verification Center</h3>
-        <p class="muted">The core innovation of Care Vault: medicines enter the record as <b>🔴 Verification Pending</b> and become <b>🟩 Verified — Ready to take ✓</b> only after you confirm them. Verified medicines are what Emergency Mode and future doctors trust.</p>
+        <p class="muted">Medicines start <b>🔴 Pending</b> and become <b>🟩 Verified — Ready to take ✓</b> only after your confirmation. The patient's portal updates instantly in real time.</p>
         <div id="dvList" class="list"></div>
       </section>
 
-      <!-- ============ DOCTOR: MESSAGES (chat) ============ -->
+      <!-- ============ DOCTOR: MESSAGES ============ -->
       <section id="pg-d-chats" class="page hidden">
         <h3>💬 Messages</h3>
-        <p class="muted">Chat with your patients — secure, real-time and confidential. Click a patient's name to see their full portal details.</p>
         <div id="dChatList" class="list"></div>
+      </section>
+
+      <!-- ============ DOCTOR: EARNINGS ============ -->
+      <section id="pg-d-billing" class="page hidden">
+        <h3>💰 My Earnings</h3>
+        <p class="muted">Real-time consultation fees from your billings.</p>
+        <div class="grid3" id="dbSummary"></div>
+        <div class="card"><h4>Bills created by me</h4><div id="dbList" class="list"></div></div>
       </section>
 
       <!-- ============ DOCTOR: CASE DETAIL ============ -->
@@ -548,14 +516,11 @@
         <div id="cdHead"></div>
         <div class="card ai"><h4>🧠 AI Case Snapshot <span class="chip amber">auto-generated from records</span></h4><div id="cdSummary" class="kv"></div></div>
         <div class="grid2">
-          <div class="card blue-edge">
-            <h4>🟦 Patient-Reported</h4>
-            <div id="cdBlue" class="kv"></div>
-          </div>
+          <div class="card blue-edge"><h4>🟦 Patient-Reported</h4><div id="cdBlue" class="kv"></div></div>
           <div class="card green-edge">
             <h4>🟩 Doctor-Verified (your entry)</h4>
             <label class="label">Clinical Notes</label>
-            <div class="mic-row"><textarea id="cdNotes" class="input" rows="3"></textarea><button type="button" class="mic" data-act="mic" data-target="cdNotes" title="Voice input">🎙️</button></div>
+            <div class="mic-row"><textarea id="cdNotes" class="input" rows="3"></textarea><button type="button" class="mic" data-act="mic" data-target="cdNotes">🎙️</button></div>
             <label class="label">Observations / Confirmed Information</label>
             <textarea id="cdObs" class="input" rows="2"></textarea>
             <label class="label">Prescription (medicines)</label>
@@ -563,32 +528,30 @@
             <button class="btn ghost sm" data-act="add-presc-row">+ Add Medicine</button>
             <label class="label">Recommended Tests</label>
             <textarea id="cdTests" class="input" rows="2" placeholder="e.g. CBC, HbA1c"></textarea>
-            <label class="label">Follow-up recommended after (days)</label>
+            <label class="label">Consultation Fee (₹) — creates a real-time bill for the patient</label>
+            <input id="cdFee" type="number" class="input sm-input" placeholder="e.g. 300">
+            <label class="label">Follow-up after (days)</label>
             <input id="cdFollow" type="number" class="input sm-input" placeholder="e.g. 14">
             <label class="chip green"><input type="checkbox" id="cdShare" checked> Share with patient</label>
             <button class="btn primary big" data-act="submit-review">✅ VERIFY &amp; SEND TO PATIENT</button>
           </div>
         </div>
-        <div class="card">
-          <h4>💊 Patient's Medicines — Verify</h4>
-          <div id="cdMedVerify" class="list"></div>
-        </div>
+        <div class="card"><h4>💊 Patient's Medicines — Verify</h4><div id="cdMedVerify" class="list"></div></div>
       </section>
 
-      <!-- ============ DOCTOR: PATIENTS ============ -->
+      <!-- ============ DOCTOR: PATIENTS / APPOINTMENTS ============ -->
       <section id="pg-d-patients" class="page hidden">
         <h3>🔍 Patients</h3>
         <input id="dpSearch" class="input" placeholder="Search by Health ID or name…">
-        <div id="dpList" class="grid2"></div>
+        <div id="dpList" class="doc-grid"></div>
       </section>
 
-      <!-- ============ DOCTOR: APPOINTMENTS ============ -->
       <section id="pg-d-appts" class="page hidden">
         <h3>📅 My Appointments</h3>
         <div id="daList" class="list"></div>
       </section>
 
-      <!-- ============ HOSPITAL: DASHBOARD ============ -->
+      <!-- ============ HOSPITAL ============ -->
       <section id="pg-h-dash" class="page hidden">
         <h3>🏥 Hospital Dashboard</h3>
         <div class="grid3" id="hhStats"></div>
@@ -598,38 +561,50 @@
         </div>
       </section>
 
-      <!-- ============ HOSPITAL: ALL PATIENTS ============ -->
       <section id="pg-h-patients" class="page hidden">
         <h3>👥 All Patients — Full Records</h3>
-        <p class="muted">Click "View" to see everything the patient filled — every view is logged in the patient's audit trail.</p>
         <input id="hPatSearch" class="input" placeholder="Search patient by name or Health ID…">
         <div id="hPatList" class="list"></div>
       </section>
 
-      <!-- ============ HOSPITAL: ALL DOCTORS ============ -->
       <section id="pg-h-doctors" class="page hidden">
         <h3>👨‍⚕️ All Doctors — Full Records</h3>
         <div id="hDocTable"></div>
       </section>
 
-      <!-- ============ HOSPITAL: ALL CASES ============ -->
       <section id="pg-h-cases" class="page hidden">
         <h3>📋 All Cases</h3>
         <div id="hCaseTable"></div>
       </section>
 
-      <!-- ============ HOSPITAL: MEDICINES OVERVIEW ============ -->
       <section id="pg-h-meds" class="page hidden">
         <h3>💊 Medicines Overview — Verification Status</h3>
         <div id="hMedTable"></div>
       </section>
 
-      <!-- ============ HOSPITAL: ALL APPOINTMENTS ============ -->
       <section id="pg-h-appts" class="page hidden">
         <h3>📅 All Appointments</h3><div id="hApptTable"></div>
       </section>
 
-      <!-- ============ HOSPITAL: UPLOAD REPORT ============ -->
+      <section id="pg-h-billing" class="page hidden">
+        <h3>💰 Hospital Billing</h3>
+        <div class="card">
+          <h4>Add a bill for a patient (real-time → appears in patient &amp; doctor portals instantly)</h4>
+          <div class="row3">
+            <input id="hbHid" class="input" placeholder="Patient Health ID (CV-XXXXXX)">
+            <input id="hbItem" class="input" placeholder="Item e.g. CBC blood test / Medicine purchase">
+            <input id="hbAmount" type="number" class="input" placeholder="Amount ₹">
+          </div>
+          <div class="row3">
+            <select id="hbType" class="input"><option>medicine</option><option>test</option><option>procedure</option><option>room</option><option>other</option></select>
+            <span></span>
+            <button class="btn primary" data-act="h-add-bill">+ Add Bill</button>
+          </div>
+        </div>
+        <div class="grid3" id="hbSummary"></div>
+        <div class="card"><h4>All Bills (real-time)</h4><div id="hbList"></div></div>
+      </section>
+
       <section id="pg-h-upload" class="page hidden">
         <h3>🧪 Upload Report for Patient</h3>
         <div class="card">
@@ -651,10 +626,8 @@
   </main>
 </div>
 
-<!-- FLOATING: chatbot -->
 <button id="cbFab" class="fab hidden" data-act="chatbot" title="Ask Care Vault">🤖</button>
 
-<!-- EMERGENCY OVERLAY -->
 <div id="emOverlay" class="overlay hidden">
   <div class="em-card">
     <div class="em-head"><b>🚑 EMERGENCY MODE</b><button class="icon-btn" data-act="close-em">✕</button></div>
@@ -667,7 +640,6 @@
   </div>
 </div>
 
-<!-- CHAT MODAL -->
 <div id="chatModal" class="overlay hidden">
   <div class="chat-card">
     <div class="em-head chat-head"><b id="chatTitle">Chat</b><button class="icon-btn" data-act="close-chat">✕</button></div>
@@ -680,11 +652,10 @@
   </div>
 </div>
 
-<!-- CHATBOT MODAL -->
 <div id="cbModal" class="overlay hidden">
   <div class="chat-card">
     <div class="em-head chat-head"><b>Ask CareVault 🤖</b><button class="icon-btn" data-act="close-cb">✕</button></div>
-    <div id="cbMsgs" class="chat-msgs"><div class="msg bot">Hello! I answer only from <b>your authorized records</b> — I do not give medical advice. Try: "next appointment?", "active medicines?", "previous surgery?", "last doctor notes?", "reports?", "where is my doctor?"</div></div>
+    <div id="cbMsgs" class="chat-msgs"><div class="msg bot">Hello! I answer only from <b>your authorized records</b> — no medical advice. Try: "next appointment?", "queue number?", "where is my doctor?", "reports?"</div></div>
     <div class="chat-input-row">
       <input id="cbInput" class="input" placeholder="Ask about your records…">
       <button class="btn primary" data-act="send-cb">➤</button>
@@ -692,11 +663,9 @@
   </div>
 </div>
 
-<!-- GENERIC MODAL + TOAST -->
 <div id="modalRoot" class="overlay hidden"><div class="chat-card" id="modalCard"></div></div>
 <div id="toastRoot" class="toast-root"></div>
 
-<!-- LIBRARIES (order matters!) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
