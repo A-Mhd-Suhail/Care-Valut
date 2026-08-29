@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Care Vault — One Patient. One Medical Journey.</title>
+<title>MHD Hospital — My Health Defense Hospital 24×7</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -22,9 +22,16 @@
   </div>
   <div class="auth-wrap">
     <div class="auth-hero">
-      <div class="brand-big"><span class="logo-heart">🛡️</span> Care Vault</div>
+      <div class="brand-row">
+        <span class="brand-logo">🛡️</span>
+        <div>
+          <div class="brand-big">MHD HOSPITAL</div>
+          <div class="brand-tag">My Health Defense Hospital 24×7</div>
+        </div>
+      </div>
+      <div class="gov-badge">🏛️ Built For Ministry of Ayush</div>
       <h1>One Patient. One Medical Journey.</h1>
-      <p class="usp">Care Vault transforms fragmented medical records into one secure, longitudinal patient case history.</p>
+      <p class="usp">MHD Hospital transforms fragmented medical records into one secure, longitudinal patient case history — available 24×7.</p>
       <ul class="hero-points">
         <li>📋 Patient fills case → 🩺 Doctor verifies → ✅ Patient sees verified information</li>
         <li>💊 Medicine verification — red pending → green "Ready to take ✓"</li>
@@ -37,7 +44,8 @@
         <button class="btn ghost sm" data-act="demo-login" data-role="doctor">👨‍⚕️ Doctor Demo</button>
         <button class="btn ghost sm" data-act="demo-login" data-role="hospital">🏥 Hospital Demo</button>
       </div>
-      <p class="hint">One-click demo accounts — created automatically on first use. Email: role.demo@carevault.in • Password: demo123</p>
+      <p class="hint">One-click demo accounts — created automatically on first use. Email: role.demo@mhdhospital.in • Password: demo123</p>
+      <p class="foot-note">© MHD Hospital • My Health Defense Hospital 24×7 • Built For Ministry of Ayush</p>
     </div>
 
     <div class="auth-card card">
@@ -154,7 +162,7 @@
 <!-- ================= APP SHELL ================= -->
 <div id="app" class="app hidden">
   <aside id="sidebar">
-    <div class="side-brand"><span class="logo-heart">🛡️</span> <b>Care Vault</b><small id="sideRole">Patient Portal</small></div>
+    <div class="side-brand"><span class="logo-heart">🛡️</span> <b>MHD HOSPITAL</b><small id="sideRole">Patient Portal</small><small class="brand-sub">My Health Defense Hospital 24×7</small></div>
     <nav id="sideNav"></nav>
     <div class="side-user">
       <div class="avatar" id="sideAvatar">🧑</div>
@@ -188,7 +196,7 @@
       <!-- ============ PATIENT: DASHBOARD ============ -->
       <section id="pg-p-dash" class="page">
         <div class="greet">
-          <div><h3 id="dGreet">Good Morning 👋</h3><p class="muted">Take care and get well soon! • Health ID: <b id="dHid" class="hid-chip">CV-XXXXXX</b></p></div>
+          <div><h3 id="dGreet">Good Morning 👋</h3><p class="muted">Take care and get well soon! • Health ID: <b id="dHid" class="hid-chip">MHD-XXXXXX</b></p></div>
           <button class="btn danger" data-act="emergency">🚑 EMERGENCY</button>
         </div>
         <div id="reviewBanner" class="banner hidden"></div>
@@ -406,7 +414,7 @@
         <div class="grid2">
           <div class="card center">
             <div id="qrBox" class="qr-box"></div>
-            <p><b id="qrHid">CV-XXXXXX</b></p>
+            <p><b id="qrHid">MHD-XXXXXX</b></p>
             <p class="muted" id="qrName"></p>
           </div>
           <div class="card">
@@ -586,7 +594,7 @@
         <div class="card">
           <h4>Add a bill for a patient (real-time → appears in patient &amp; doctor portals instantly)</h4>
           <div class="row3">
-            <input id="hbHid" class="input" placeholder="Patient Health ID (CV-XXXXXX)">
+            <input id="hbHid" class="input" placeholder="Patient Health ID (MHD-XXXXXX)">
             <input id="hbItem" class="input" placeholder="Item e.g. CBC blood test / Medicine purchase">
             <input id="hbAmount" type="number" class="input" placeholder="Amount ₹">
           </div>
@@ -604,7 +612,7 @@
         <h3>🧪 Upload Report for Patient</h3>
         <div class="card">
           <div class="row3">
-            <input id="huHid" class="input" placeholder="Patient Health ID (CV-XXXXXX)">
+            <input id="huHid" class="input" placeholder="Patient Health ID (MHD-XXXXXX)">
             <input id="huTitle" class="input" placeholder="Report title">
             <select id="huType" class="input"><option>Lab Report</option><option>X-ray</option><option>CT / MRI</option><option>Scan</option><option>Prescription</option><option>Discharge Summary</option></select>
           </div>
@@ -621,15 +629,15 @@
   </main>
 </div>
 
-<button id="cbFab" class="fab hidden" data-act="chatbot" title="Ask Care Vault">🤖</button>
+<button id="cbFab" class="fab hidden" data-act="chatbot" title="Ask MHD Assistant">🤖</button>
 
 <div id="emOverlay" class="overlay hidden">
   <div class="em-card">
-    <div class="em-head"><b>🚑 EMERGENCY MODE</b><button class="icon-btn" data-act="close-em">✕</button></div>
+    <div class="em-head"><b>🚑 EMERGENCY MODE — MHD HOSPITAL</b><button class="icon-btn" data-act="close-em">✕</button></div>
     <p class="muted">Minimal information. Maximum usefulness. Only consent-compliant critical data is shown.</p>
     <div id="emBody" class="grid2"></div>
     <div id="emLookupRow" class="hidden">
-      <input id="emHealthId" class="input" placeholder="Enter Patient Health ID (CV-XXXXXX)">
+      <input id="emHealthId" class="input" placeholder="Enter Patient Health ID (MHD-XXXXXX)">
       <button class="btn primary" data-act="em-lookup">Lookup</button>
     </div>
   </div>
@@ -649,7 +657,7 @@
 
 <div id="cbModal" class="overlay hidden">
   <div class="chat-card">
-    <div class="em-head chat-head"><b>Ask CareVault 🤖</b><button class="icon-btn" data-act="close-cb">✕</button></div>
+    <div class="em-head chat-head"><b>Ask MHD Assistant 🤖</b><button class="icon-btn" data-act="close-cb">✕</button></div>
     <div id="cbMsgs" class="chat-msgs"><div class="msg bot">Hello! I answer only from <b>your authorized records</b> — no medical advice. Try: "next appointment?", "queue number?", "where is my doctor?", "reports?"</div></div>
     <div class="chat-input-row">
       <input id="cbInput" class="input" placeholder="Ask about your records…">
