@@ -334,7 +334,7 @@
           <label class="label">Reason for visit</label>
           <textarea id="apReason" class="input" rows="2"></textarea>
           <button class="btn primary" data-act="book-appt">Confirm Appointment</button>
-          <p class="hint">🛡️ Slots are locked with a Firestore ACID transaction — even if two patients click the same slot at the same millisecond, only one booking succeeds.</p>
+          <p class="hint">🛡️ Slots are locked with a Firestore ACID transaction — even if two patients click the same slot at the same millisecond, only one booking succeeds. Cancelling releases the slot.</p>
         </div>
         <div class="tabs sm">
           <button class="tab active" data-aptab="upcoming">Upcoming</button>
@@ -350,7 +350,7 @@
         <div id="docList" class="grid2"></div>
       </section>
 
-      <!-- ============ PATIENT: DOCTOR MAP (LIVE LOCATION) ============ -->
+      <!-- ============ PATIENT: DOCTOR MAP ============ -->
       <section id="pg-p-map" class="page hidden">
         <h3>🗺️ Doctor Live Location</h3>
         <p class="muted">Doctors appear here only while they are <b>ON DUTY</b>. Location is removed automatically when they log out, and positions older than 6 minutes are hidden.</p>
@@ -375,9 +375,7 @@
           <div><h3>📈 Health Tracking</h3><p class="muted">Track your health and recovery progress</p></div>
           <span class="chip blue" id="vtToday"></span>
         </div>
-
         <div id="statCards" class="stat-grid"></div>
-
         <div class="card">
           <h4>Log Your Health Data</h4>
           <p class="muted">Record your latest measurements</p>
@@ -397,17 +395,8 @@
             <button class="btn primary" data-act="add-vital">Save Record</button>
           </div>
         </div>
-
-        <div class="card">
-          <h4>Recent Records</h4>
-          <div id="recentVitals" class="list"></div>
-        </div>
-
-        <div class="card">
-          <h4>Trends (Last 7 Records)</h4>
-          <div id="trendGrid" class="trend-grid"></div>
-        </div>
-
+        <div class="card"><h4>Recent Records</h4><div id="recentVitals" class="list"></div></div>
+        <div class="card"><h4>Trends (Last 7 Records)</h4><div id="trendGrid" class="trend-grid"></div></div>
         <div class="card tip-card">
           <b>💡 Tip</b>
           <p class="muted">Track your vitals regularly to help your doctor monitor your recovery better.</p>
@@ -445,14 +434,14 @@
         <div id="accessList" class="list"></div>
       </section>
 
-      <!-- ============ NOTIFICATIONS (all roles) ============ -->
+      <!-- ============ NOTIFICATIONS ============ -->
       <section id="pg-notifs" class="page hidden">
         <h3>🔔 Notification Center</h3>
         <button class="btn ghost sm" data-act="mark-read">Mark all as read</button>
         <div id="notifList" class="list"></div>
       </section>
 
-      <!-- ============ SETTINGS (all roles) ============ -->
+      <!-- ============ SETTINGS ============ -->
       <section id="pg-settings" class="page hidden">
         <h3>⚙️ Profile &amp; Settings</h3>
         <div class="grid2">
@@ -556,12 +545,36 @@
       <section id="pg-h-dash" class="page hidden">
         <h3>🏥 Hospital Dashboard</h3>
         <div class="grid3" id="hhStats"></div>
-        <div class="card"><h4>🧾 Today's Patient Queue</h4><div id="hhQueue"></div></div>
+        <div class="grid2">
+          <div class="card"><h4>🧾 Today's Patient Queue</h4><div id="hhQueue"></div></div>
+          <div class="card"><h4>💊 Verification Overview</h4><div id="hhVerify" class="kv"></div></div>
+        </div>
       </section>
 
-      <!-- ============ HOSPITAL: DOCTORS ============ -->
+      <!-- ============ HOSPITAL: ALL PATIENTS (FULL DETAILS) ============ -->
+      <section id="pg-h-patients" class="page hidden">
+        <h3>👥 All Patients — Full Records</h3>
+        <p class="muted">Click "View" to see everything the patient filled — every view is logged in the patient's audit trail.</p>
+        <input id="hPatSearch" class="input" placeholder="Search patient by name or Health ID…">
+        <div id="hPatList" class="list"></div>
+      </section>
+
+      <!-- ============ HOSPITAL: ALL DOCTORS (FULL DETAILS) ============ -->
       <section id="pg-h-doctors" class="page hidden">
-        <h3>👨‍⚕️ Doctors</h3><div id="hDocTable"></div>
+        <h3>👨‍⚕️ All Doctors — Full Records</h3>
+        <div id="hDocTable"></div>
+      </section>
+
+      <!-- ============ HOSPITAL: ALL CASES ============ -->
+      <section id="pg-h-cases" class="page hidden">
+        <h3>📋 All Cases</h3>
+        <div id="hCaseTable"></div>
+      </section>
+
+      <!-- ============ HOSPITAL: MEDICINES OVERVIEW ============ -->
+      <section id="pg-h-meds" class="page hidden">
+        <h3>💊 Medicines Overview — Verification Status</h3>
+        <div id="hMedTable"></div>
       </section>
 
       <!-- ============ HOSPITAL: APPOINTMENTS ============ -->
