@@ -1,7 +1,9 @@
 /* ============================================================
-   CARE VAULT v5 — Patient–Doctor Continuity Platform
-   v5: Doctor sees FULL patient profile • Hospital sees ALL
-   records • slot release on cancel • map/staleness fixes
+   CARE VAULT v7 — Patient–Doctor Continuity Platform
+   v7: Recovery % ring • Today's Schedule with Mark-Taken
+   • Red→Green medicine verification flow • Verify CTA on
+   doctor dashboard • Queue numbers • Doctor chat page
+   • Separate Logout on all portals • Clickable patient details
    ============================================================ */
 
 /* ---------- SHORT HELPERS ---------- */
@@ -13,22 +15,27 @@ const fmtD = d => { if (!d) return '—'; try { return new Date(d).toLocaleDateS
 const fmtDT = t => { if (!t) return '—'; try { return new Date(t).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return String(t); } };
 const uid6 = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 const maskAadhaar = a => a ? 'XXXX XXXX ' + String(a).slice(-4) : '—';
+function timeToMin(t) { const m = String(t || '').match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return 0; let h = (+m[1]) % 12; if (/pm/i.test(m[3])) h += 12; return h * 60 + (+m[2]); }
+function schedTimeFromDosage(d) { const s = (d || '').toLowerCase();
+  if (s.includes('breakfast') || s.includes('morning')) return '08:00 AM';
+  if (s.includes('lunch') || s.includes('afternoon')) return '01:00 PM';
+  if (s.includes('dinner') || s.includes('night')) return '08:00 PM';
+  if (s.includes('evening')) return '06:00 PM';
+  return '09:00 AM'; }
 
 let ME = null, ROLE = null, UNBINDS = [];
 const STATE = { doctors: [], patients: [], cases: [], myReviewed: [], meds: [], reports: [], appts: [], timeline: [], consents: [], access: [], notifs: [], vitals: [], unverifiedMeds: [], allCases: [], medsAll: [] };
-let CURRENT_CASE = null, CHAT_WITH = null, CURRENT_APTAB = 'upcoming', CURRENT_CTAB = 'waiting', chosenSlot = null, qrDone = false, chatUnsub = null, selectedPain = null;
+let CURRENT_CASE = null, CHAT_WITH = null, CURRENT_APTAB = 'upcoming', CURRENT_CTAB = 'waiting', chosenSlot = null, chatUnsub = null, selectedPain = null;
 let dutyWatch = null, lastLocSend = 0, focusDoctorId = null, cvMap = null, markersLayer = null;
 
 window.addEventListener('error', e => { try { toast('⚠️ ' + e.message); } catch (_) {} });
 window.addEventListener('unhandledrejection', e => { try { const r = e.reason; toast('⚠️ ' + (r && r.message ? r.message : 'Unexpected error')); } catch (_) {} });
 
-/* ---------- TOAST / MODAL ---------- */
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; $('#toastRoot').appendChild(t); setTimeout(() => t.remove(), 3500); }
 function showModal(html) { $('#modalCard').innerHTML = html; $('#modalRoot').classList.remove('hidden'); }
 function closeModal() { $('#modalRoot').classList.add('hidden'); }
 function modalCloseBtn() { return '<button class="btn ghost sm" data-act="close-modal" style="margin-top:12px">Close</button>'; }
 
-/* ---------- FRIENDLY ERRORS ---------- */
 function errMsg(err) {
   const c = (err && err.code) ? err.code : '';
   if (c.includes('email-already-in-use')) return 'This email is already registered — please Login instead.';
@@ -65,6 +72,52 @@ setFont(localStorage.getItem('cv_font') || 'md');
   $('#regPatient').classList.toggle('hidden', r !== 'patient');
   $('#regDoctor').classList.toggle('hidden', r !== 'doctor');
   $('#regHospital').classList.toggle('hidden', r !== 'hospital');
+});
+
+/* ---------- ONE-CLICK DEMO ACCOUNTS ---------- */
+const DEMO_PASS = 'demo123';
+const DEMO = {
+  patient: {
+    email: 'patient.demo@carevault.in',
+    profile: { role: 'patient', name: 'Arjun Kumar', dob: '1980-03-14', gender: 'Male', bloodGroup: 'O+', phone: '9840012345', aadhaar: '432187651122',
+      address: '12, Gandhi Street, Anna Nagar, Chennai 600040', emergencyName: 'Priya Kumar (Wife)', emergencyPhone: '9840055555',
+      heightCm: '170', weightKg: '74', allergies: 'Penicillin (medicine allergy), Dust (other)',
+      conditions: 'Type 2 Diabetes (2021), Hypertension (2022)',
+      surgeries: 'Appendectomy | 2019 | Apollo Hospitals | Dr. Rajan | Appendicitis\nKnee Arthroscopy | 2022 | Kauvery Hospital | Dr. Menon | Meniscus tear',
+      accidents: 'Two-wheeler accident 2016 — right arm fracture, treated at Kauvery Hospital',
+      familyHistory: 'Father — Diabetes; Grandmother — Hypertension', income: '240000', language: 'English', healthId: 'CV-DEMO01' }
+  },
+  doctor: { email: 'doctor.demo@carevault.in', profile: { role: 'doctor', name: 'Arun Kumar', specialization: 'General Surgery', experience: '12', hospital: 'City General Hospital', regNo: 'TMC-45892', phone: '9840077777', onDuty: false } },
+  hospital: { email: 'hospital.demo@carevault.in', profile: { role: 'hospital', name: 'City General Hospital', adminName: 'Admin Demo', phone: '9840088888', address: '1, Hospital Road, Chennai', licenseNo: 'TN-HOSP-1024' } }
+};
+async function quickDemo(role) {
+  const d = DEMO[role]; if (!d) return;
+  cleanupSession();
+  try {
+    await auth.signInWithEmailAndPassword(d.email, DEMO_PASS);
+    toast('Logged in as demo ' + role + ' ✅');
+  } catch (err) {
+    const c = (err && err.code) || '';
+    if (c.includes('user-not-found') || c.includes('invalid-credential')) {
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(d.email, DEMO_PASS);
+        await db.collection('users').doc(cred.user.uid).set({ ...d.profile, email: d.email, createdAt: Date.now() });
+        if (role === 'patient') {
+          await db.collection('medicines').add({ patientId: cred.user.uid, name: 'Metformin 500mg', dosage: '1 tablet after breakfast', startDate: todayStr(), durationDays: '30', prescribedBy: 'Arjun Kumar (self-reported)', verified: false, source: 'patient', active: true, createdAt: Date.now() });
+        }
+        toast('Demo ' + role + ' account created & logged in ✅');
+      } catch (e2) {
+        if ((e2 && e2.code || '').includes('email-already-in-use')) {
+          try { await auth.signInWithEmailAndPassword(d.email, DEMO_PASS); toast('Logged in as demo ' + role + ' ✅'); }
+          catch (e3) { toast('⚠️ ' + errMsg(e3)); }
+        } else toast('⚠️ ' + errMsg(e2));
+      }
+    } else toast('⚠️ ' + errMsg(err));
+  }
+}
+document.addEventListener('click', e => {
+  const dl = e.target.closest('[data-act="demo-login"]');
+  if (dl) quickDemo(dl.dataset.role);
 });
 
 /* ---------- DEMO FILL ---------- */
@@ -123,22 +176,28 @@ setFont(localStorage.getItem('cv_font') || 'md');
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
 
-/* ---------- LOGIN / LOGOUT ---------- */
+/* ---------- LOGIN / SESSION ---------- */
  $('#formLogin').addEventListener('submit', async e => {
   e.preventDefault();
   try { await auth.signInWithEmailAndPassword($('#loginEmail').value.trim(), $('#loginPass').value); }
   catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
-async function doLogout() {
+function cleanupSession() {
   try {
     if (ROLE === 'doctor' && ME) {
-      await db.collection('users').doc(ME.id).update({ onDuty: false, location: firebase.firestore.FieldValue.delete() });
+      db.collection('users').doc(ME.id).update({ onDuty: false, location: firebase.firestore.FieldValue.delete() }).catch(() => {});
     }
   } catch (e) {}
   if (dutyWatch) { navigator.geolocation.clearWatch(dutyWatch); dutyWatch = null; }
   if (chatUnsub) { chatUnsub(); chatUnsub = null; }
   UNBINDS.forEach(u => { try { u(); } catch (e) {} }); UNBINDS = [];
   ME = null; ROLE = null;
+  CURRENT_CASE = null; CHAT_WITH = null; chosenSlot = null; selectedPain = null;
+  CURRENT_APTAB = 'upcoming'; CURRENT_CTAB = 'waiting';
+  STATE.cases = []; STATE.meds = []; STATE.reports = []; STATE.appts = []; STATE.timeline = []; STATE.access = []; STATE.vitals = []; STATE.notifs = []; STATE.unverifiedMeds = []; STATE.myReviewed = [];
+}
+async function doLogout() {
+  cleanupSession();
   await auth.signOut().catch(() => {});
   location.reload();
 }
@@ -147,9 +206,14 @@ async function doLogout() {
 auth.onAuthStateChanged(async user => {
   if (!user) { $('#screen-auth').classList.remove('hidden'); $('#app').classList.add('hidden'); return; }
   try {
-    const doc = await db.collection('users').doc(user.uid).get();
-    if (!doc.exists) { toast('Profile missing — please register again.'); await auth.signOut(); return; }
-    ME = { id: user.uid, ...doc.data() };
+    let snap = null;
+    for (let i = 0; i < 4; i++) {
+      const s = await db.collection('users').doc(user.uid).get();
+      if (s.exists) { snap = s; break; }
+      await new Promise(r => setTimeout(r, 400));
+    }
+    if (!snap) { toast('Profile missing — please register again.'); await auth.signOut(); return; }
+    ME = { id: user.uid, ...snap.data() };
     ROLE = ME.role;
     const sel = $('#loginRole').value;
     if (sel && sel !== ROLE) toast('ℹ️ That is not a ' + sel + ' account — this is a ' + ROLE + ' account. Continuing.');
@@ -160,10 +224,10 @@ auth.onAuthStateChanged(async user => {
 /* ---------- NAV / ROUTING ---------- */
 const MENUS = {
   patient: [['p-dash', '🏠 Dashboard'], ['p-upcoming', '🗓️ Upcoming Events'], ['p-newcase', '📝 New Case'], ['p-case', '📋 My Case'], ['p-meds', '💊 Medicines'], ['p-reports', '🧪 Reports'], ['p-appts', '📅 Appointments'], ['p-doctors', '👨‍⚕️ My Doctors'], ['p-map', '🗺️ Doctor Map'], ['p-timeline', '🕐 Timeline'], ['p-vitals', '📈 Health Tracking'], ['p-qr', '📱 My QR'], ['p-consent', '🔐 Consent Center'], ['p-access', '👁️ Access History'], ['p-notifs', '🔔 Notifications'], ['p-settings', '⚙️ Settings'], ['EMERGENCY', '🚑 Emergency']],
-  doctor: [['d-dash', '🏠 Dashboard'], ['d-cases', '📋 Cases'], ['d-verify', '💊 Verify Medicines'], ['d-patients', '🔍 Patients'], ['d-appts', '📅 Appointments'], ['p-notifs', '🔔 Notifications'], ['p-settings', '⚙️ Settings']],
+  doctor: [['d-dash', '🏠 Dashboard'], ['d-cases', '📋 Cases'], ['d-verify', '💊 Verify Medicines'], ['d-chats', '💬 Messages'], ['d-patients', '🔍 Patients'], ['d-appts', '📅 Appointments'], ['p-notifs', '🔔 Notifications'], ['p-settings', '⚙️ Settings']],
   hospital: [['h-dash', '🏥 Dashboard'], ['h-patients', '👥 All Patients'], ['h-doctors', '👨‍⚕️ All Doctors'], ['h-cases', '📋 All Cases'], ['h-meds', '💊 Medicines'], ['h-appts', '📅 Appointments'], ['h-upload', '🧪 Upload Report'], ['p-notifs', '🔔 Notifications'], ['p-settings', '⚙️ Settings']]
 };
-const TITLES = { 'p-dash': 'Dashboard', 'p-upcoming': 'Upcoming Events', 'p-newcase': 'Case-Taking', 'p-case': 'My Case', 'p-meds': 'My Medicines', 'p-reports': 'My Reports', 'p-appts': 'Appointments', 'p-doctors': 'My Doctors', 'p-map': 'Doctor Map', 'p-timeline': 'Medical Timeline', 'p-vitals': 'Health Tracking', 'p-qr': 'My QR', 'p-consent': 'Consent Center', 'p-access': 'Access History', 'p-notifs': 'Notifications', 'p-settings': 'Settings', 'd-dash': 'Doctor Dashboard', 'd-cases': 'Cases', 'd-verify': 'Medicine Verification', 'd-case': 'Case Review', 'd-patients': 'Patients', 'd-appts': 'My Appointments', 'h-dash': 'Hospital Dashboard', 'h-patients': 'All Patients', 'h-doctors': 'All Doctors', 'h-cases': 'All Cases', 'h-meds': 'Medicines Overview', 'h-appts': 'All Appointments', 'h-upload': 'Upload Report' };
+const TITLES = { 'p-dash': 'Dashboard', 'p-upcoming': 'Upcoming Events', 'p-newcase': 'Case-Taking', 'p-case': 'My Case', 'p-meds': 'My Medicines', 'p-reports': 'My Reports', 'p-appts': 'Appointments', 'p-doctors': 'My Doctors', 'p-map': 'Doctor Map', 'p-timeline': 'Medical Timeline', 'p-vitals': 'Health Tracking', 'p-qr': 'My QR', 'p-consent': 'Consent Center', 'p-access': 'Access History', 'p-notifs': 'Notifications', 'p-settings': 'Settings', 'd-dash': 'Doctor Dashboard', 'd-cases': 'Cases', 'd-verify': 'Medicine Verification', 'd-chats': 'Messages', 'd-case': 'Case Review', 'd-patients': 'Patients', 'd-appts': 'My Appointments', 'h-dash': 'Hospital Dashboard', 'h-patients': 'All Patients', 'h-doctors': 'All Doctors', 'h-cases': 'All Cases', 'h-meds': 'Medicines Overview', 'h-appts': 'All Appointments', 'h-upload': 'Upload Report' };
 
 function buildNav() {
   const nav = $('#sideNav'); nav.innerHTML = '';
@@ -171,6 +235,9 @@ function buildNav() {
     const b = document.createElement('button'); b.className = 'nav-item' + (id === 'EMERGENCY' ? ' danger' : ''); b.dataset.nav = id;
     b.innerHTML = label; nav.appendChild(b);
   });
+  // ✅ Separate Logout button on ALL portals
+  const lb = document.createElement('button'); lb.className = 'nav-item danger'; lb.dataset.nav = 'LOGOUT';
+  lb.innerHTML = '🚪 Logout'; nav.appendChild(lb);
   $('#sideRole').textContent = ROLE === 'patient' ? 'Patient Portal' : ROLE === 'doctor' ? 'Doctor Portal' : 'Hospital Portal';
   $('#sideName').textContent = ME.name || '—';
   $('#sideSub').textContent = ROLE === 'patient' ? (ME.healthId || '') : (ROLE === 'doctor' ? (ME.specialization || '') : (ME.adminName || ''));
@@ -183,6 +250,7 @@ document.addEventListener('click', e => {
   const nv = e.target.closest('[data-nav]'); if (!nv) return;
   if (nv.tagName === 'A') e.preventDefault();
   const id = nv.dataset.nav;
+  if (id === 'LOGOUT') { doLogout(); return; }
   if (id === 'EMERGENCY') { openEmergency(false); return; }
   go(id);
 });
@@ -198,8 +266,8 @@ function go(id) {
     'p-meds': () => renderMeds(), 'p-reports': () => renderReports(), 'p-appts': () => { renderAppts(); loadTakenSlots(); },
     'p-doctors': () => renderDoctorsPage(), 'p-map': () => renderDoctorMap(), 'p-timeline': () => renderTimeline(), 'p-vitals': () => renderVitals(),
     'p-qr': () => renderQR(), 'p-consent': () => renderConsent(), 'p-access': () => renderAccess(), 'p-settings': () => renderSettings(),
-    'd-dash': () => renderDocDash(), 'd-cases': () => renderDoctorCases(), 'd-verify': () => renderVerifyMeds(), 'd-patients': () => renderPatients(), 'd-appts': () => renderDocAppts(),
-    'h-dash': () => renderHospital(), 'h-patients': () => renderHPatients(), 'h-doctors': () => renderHDoctors(), 'h-cases': () => renderHCases(), 'h-meds': () => renderHMeds(), 'h-appts': () => renderHospital()
+    'd-dash': () => renderDocDash(), 'd-cases': () => renderDoctorCases(), 'd-verify': () => renderVerifyMeds(), 'd-chats': () => renderDChats(), 'd-patients': () => renderPatients(), 'd-appts': () => renderDocAppts(),
+    'h-dash': () => renderHospital(), 'h-patients': () => renderHPatients(), 'h-doctors': () => renderHDoctors(), 'h-cases': () => renderHCases(), 'h-meds': () => renderHMeds(), 'h-appts': () => renderHAppts()
   };
   if (hooks[id]) { try { hooks[id](); } catch (e) { console.error(e); } }
 }
@@ -217,7 +285,6 @@ function enterApp() {
   const greet = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   if (ROLE === 'patient') { $('#dGreet').textContent = greet + ', ' + ME.name + ' 👋'; $('#dHid').textContent = ME.healthId; bindPatient(); go('p-dash'); }
   if (ROLE === 'doctor') {
-    // Privacy: location sharing always starts OFF on a fresh session — doctor must press "Go On Duty"
     db.collection('users').doc(ME.id).update({ onDuty: false, location: firebase.firestore.FieldValue.delete() }).catch(() => {});
     ME.onDuty = false; ME.location = null;
     $('#dGreetDoc').textContent = greet + ', Dr. ' + ME.name + ' 🩺';
@@ -238,6 +305,7 @@ function bindNotifs() {
     const list = STATE.notifs.slice(0, 12).map(n => '<div class="list-item"><div class="li-main"><b>' + esc(n.title) + '</b><small>' + esc(n.body) + ' • ' + fmtDT(n.createdAt) + '</small></div></div>').join('') || '<p class="muted">No notifications yet.</p>';
     $('#bellDrop').innerHTML = '<b style="padding:6px">🔔 Notifications</b>' + list + '<button class="btn ghost sm" data-act="go-notifs" style="width:100%;margin-top:6px">View all</button>';
     const nl = $('#notifList'); if (nl) nl.innerHTML = list;
+    if (ROLE === 'patient') renderPatientDash();
   }, err => console.error(err)));
 }
 document.addEventListener('click', e => {
@@ -250,7 +318,6 @@ document.addEventListener('click', e => {
   }
 });
 
-/* ---------- ACCESS LOG ---------- */
 function logAccess(patientId, action) {
   return db.collection('accessLog').add({ patientId, actorName: (ROLE === 'doctor' ? 'Dr. ' : '') + ME.name, actorRole: ROLE, action, createdAt: Date.now() }).catch(() => {});
 }
@@ -258,7 +325,12 @@ function logAccess(patientId, action) {
 /* ---------- SHARED SNIPPETS ---------- */
 const kvRows = rows => rows.map(([k, v]) => '<div class="krow"><span>' + k + '</span><b>' + esc(v || '—') + '</b></div>').join('');
 function ageOf(dob) { if (!dob) return '—'; const a = Math.floor((Date.now() - new Date(dob)) / 31557600000); return isNaN(a) ? '—' : a + 'y'; }
-function medChip(m) { return m.verified ? '<span class="chip green">🟩 Verified ✓' + (m.verifiedBy ? ' ' + esc(m.verifiedBy) : '') + '</span>' : '<span class="chip amber">🟦 Patient reported</span>'; }
+/* 🔴→🟩 The trust layer: red pending chip → green ready chip, live via Firestore */
+function medChip(m) {
+  return m.verified
+    ? '<span class="chip ready">🟩 Verified — Ready to take ✓' + (m.verifiedBy ? ' <small>(' + esc(m.verifiedBy) + ')</small>' : '') + '</span>'
+    : '<span class="chip waiting">🔴 Verification Pending — not confirmed yet</span>';
+}
 
 /* ============================================================
    PATIENT
@@ -271,7 +343,7 @@ function bindPatient() {
   UNBINDS.push(db.collection('appointments').where('patientId', '==', pid).onSnapshot(s => { STATE.appts = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || '').localeCompare(a.date || '')); renderAppts(); renderPatientDash(); renderUpcoming(); }, console.error));
   UNBINDS.push(db.collection('timeline').where('patientId', '==', pid).onSnapshot(s => { STATE.timeline = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || '').localeCompare(a.date || '')); renderTimeline(); renderPatientDash(); renderUpcoming(); }, console.error));
   UNBINDS.push(db.collection('accessLog').where('patientId', '==', pid).onSnapshot(s => { STATE.access = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderAccess(); }, console.error));
-  UNBINDS.push(db.collection('vitals').where('patientId', '==', pid).onSnapshot(s => { STATE.vitals = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderVitals(); }, console.error));
+  UNBINDS.push(db.collection('vitals').where('patientId', '==', pid).onSnapshot(s => { STATE.vitals = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderVitals(); renderPatientDash(); }, console.error));
   UNBINDS.push(db.collection('users').where('role', '==', 'doctor').onSnapshot(s => {
     STATE.doctors = s.docs.map(d => ({ id: d.id, ...d.data() }));
     renderDoctorDropdown(); renderConsent(); renderDoctorsPage(); renderDoctorMap();
@@ -288,15 +360,92 @@ async function loadDoctors() {
   } catch (e) { console.error(e); }
 }
 
+/* ----- RECOVERY RING ----- */
+function ringSVG(pct) {
+  const r = 40, c = 2 * Math.PI * r, off = c - (pct / 100) * c;
+  return '<div class="ring-wrap"><svg width="92" height="92" viewBox="0 0 92 92">' +
+    '<circle class="ring-bg" cx="46" cy="46" r="' + r + '" fill="none" stroke-width="9"/>' +
+    '<circle class="ring-fg" cx="46" cy="46" r="' + r + '" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '"/>' +
+    '</svg><div class="ring-txt">' + pct + '%<small>RECOVERY</small></div></div>';
+}
+
+/* ----- TODAY'S SCHEDULE ----- */
+function buildTodaySchedule() {
+  const items = [];
+  STATE.appts.filter(a => a.date === todayStr()).forEach(a => items.push({ time: a.time || '09:00 AM', ico: '📅', title: 'Appointment — ' + (a.doctorName || 'Doctor'), sub: (a.type || '') + ' • ' + (a.hospital || ''), status: a.status === 'upcoming' ? 'upcoming' : 'done' }));
+  STATE.meds.filter(m => m.active !== false).forEach(m => {
+    const taken = m.takenDates && m.takenDates[todayStr()];
+    items.push({ time: schedTimeFromDosage(m.dosage), ico: '💊', title: 'Medicine — ' + m.name, sub: m.dosage || '', status: taken ? 'taken' : 'upcoming', medId: m.id });
+  });
+  const vToday = STATE.vitals.some(v => v.date === todayStr());
+  if (!vToday) items.push({ time: '06:00 PM', ico: '🩺', title: 'Health Check', sub: 'Log temperature, BP & pain level', status: 'upcoming' });
+  return items.sort((a, b) => timeToMin(a.time) - timeToMin(b.time));
+}
+function renderTodaySchedule() {
+  const el = $('#todaySchedule'); if (!el) return;
+  const items = buildTodaySchedule();
+  el.innerHTML = items.map(it => {
+    let chip = '';
+    if (it.status === 'taken') chip = '<span class="chip ready">✓ Taken</span>';
+    else if (it.status === 'done') chip = '<span class="chip green">✓ Done</span>';
+    else {
+      chip = '<span class="chip blue">🕒 Upcoming</span>';
+      if (it.medId) chip += ' <button class="btn ghost sm" data-act="mark-taken" data-id="' + it.medId + '">Mark Taken</button>';
+    }
+    return '<div class="sched-item"><span class="sched-time">' + esc(it.time) + '</span><span class="sched-dot"></span>' +
+      '<span class="sched-ico">' + it.ico + '</span><span class="sched-main"><b>' + esc(it.title) + '</b><small>' + esc(it.sub || '') + '</small></span>' + chip + '</div>';
+  }).join('') || '<p class="muted">Nothing scheduled today.</p>';
+}
+document.addEventListener('click', async e => {
+  const mt = e.target.closest('[data-act="mark-taken"]');
+  if (!mt) return;
+  const m = STATE.meds.find(x => x.id === mt.dataset.id);
+  if (!m) return;
+  try {
+    const dates = m.takenDates || {};
+    dates[todayStr()] = true;
+    await db.collection('medicines').doc(m.id).update({ takenDates: dates });
+    toast('✅ Marked as taken');
+  } catch (err) { toast('⚠️ ' + errMsg(err)); }
+});
+
 /* ----- DASHBOARD ----- */
 function renderPatientDash() {
   if (ROLE !== 'patient' || !ME) return;
   const lastCase = STATE.cases.find(c => c.status === 'reviewed');
   const nextAppt = STATE.appts.filter(a => a.status === 'upcoming' && a.date >= todayStr()).sort((a, b) => a.date.localeCompare(b.date))[0];
+
+  // Recovery % = profile + verification + documents + today's schedule adherence
+  const fields = ['name', 'dob', 'gender', 'phone', 'aadhaar', 'bloodGroup', 'address', 'emergencyName', 'allergies', 'conditions'];
+  const filled = fields.filter(f => ME[f] && String(ME[f]).trim()).length;
+  const profilePct = Math.round(filled / fields.length * 100);
+  const docsPct = Math.min(100, STATE.reports.length * 20);
+  const vm = STATE.meds.length ? Math.round(STATE.meds.filter(m => m.verified).length / STATE.meds.length * 100) : 100;
+  const active = STATE.meds.filter(m => m.active !== false);
+  const takenN = active.filter(m => m.takenDates && m.takenDates[todayStr()]).length;
+  const schedPct = active.length ? Math.round(takenN / active.length * 100) : 100;
+  const recovery = Math.round((profilePct + vm + docsPct + schedPct) / 4);
+  const rr = $('#recoRing');
+  if (rr) rr.innerHTML = ringSVG(recovery);
+  const rm = $('#recoMsg');
+  if (rm) rm.textContent = recovery >= 75 ? 'You are doing great! Keep following your schedule.' : recovery >= 40 ? 'Good progress — stay on track with your medicines and records.' : 'Add your documents, verify medicines and mark your schedule to improve recovery tracking.';
+
+  // Mini stat cards (Medicines / Appointments / Health Logs / Messages)
+  const unread = STATE.notifs.filter(n => !n.read).length;
+  const upN = STATE.appts.filter(a => a.status === 'upcoming' && a.date >= todayStr()).length;
+  const logsToday = STATE.vitals.filter(v => v.date === todayStr()).length;
+  const ms = $('#miniStats');
+  if (ms) ms.innerHTML = [
+    ['mc-blue', '💊', 'Medicines', active.length, 'Active'],
+    ['mc-green', '📅', 'Appointments', upN, 'Upcoming'],
+    ['mc-amber', '📋', 'Health Logs', logsToday, 'Today'],
+    ['mc-red', '💬', 'Messages', unread, 'Unread']
+  ].map(([cls, ico, label, val, sub]) => '<div class="mini-card"><span class="mc-ico ' + cls + '">' + ico + '</span><span><span class="mc-label">' + label + '</span><b>' + val + '</b><small>' + sub + '</small></span></div>').join('');
+
   $('#healthOverview').innerHTML = [
     ['🩸 Blood Group', ME.bloodGroup || '—'],
     ['⚠️ Allergies', ME.allergies || 'None recorded'],
-    ['💊 Active Medicines', STATE.meds.filter(m => m.active !== false).length + ' active'],
+    ['💊 Active Medicines', active.length + ' active'],
     ['🏥 Major Conditions', ME.conditions || 'None recorded'],
     ['🩺 Last Consultation', lastCase ? fmtDT(lastCase.reviewedAt) + ' — Dr. ' + lastCase.doctorName : '—'],
     ['📅 Next Follow-up', nextAppt ? fmtD(nextAppt.date) + ' ' + nextAppt.time : '—']
@@ -312,17 +461,19 @@ function renderPatientDash() {
   const fu = STATE.timeline.find(t => t.type === 'followup' && t.due && t.due >= todayStr());
   if (fu) { fb.className = 'banner amber'; fb.innerHTML = '🔔 Follow-up Reminder: ' + esc(fu.title) + ' — due on ' + fmtD(fu.due); } else fb.className = 'banner hidden';
 
-  $('#medMini').innerHTML = STATE.meds.slice(0, 4).map(m => '<li><span>' + esc(m.name) + ' <small class="muted">' + esc(m.dosage || '') + '</small></span>' + (m.verified ? '<span class="chip green">Verified ✓</span>' : '<span class="chip amber">Pending</span>') + '</li>').join('') || '<li class="muted">No medicines yet</li>';
+  $('#medMini').innerHTML = active.slice(0, 4).map(m => '<li><span>' + esc(m.name) + ' <small class="muted">' + esc(m.dosage || '') + '</small></span>' + medChip(m) + '</li>').join('') || '<li class="muted">No medicines yet</li>';
   $('#repMini').innerHTML = STATE.reports.slice(0, 4).map(r => '<li><span>' + esc(r.title) + '</span><small class="muted">' + fmtD(r.date) + '</small></li>').join('') || '<li class="muted">No reports yet</li>';
+  const evMini = $('#evMini');
+  if (evMini) {
+    const evts = [];
+    if (nextAppt) evts.push(['📅', nextAppt.doctorName + ' • ' + fmtD(nextAppt.date) + ' ' + nextAppt.time]);
+    if (fu) evts.push(['🔔', fu.title + ' • due ' + fmtD(fu.due)]);
+    evMini.innerHTML = evts.map(([i, t]) => '<li><span>' + i + ' ' + esc(t) + '</span></li>').join('') || '<li class="muted">No upcoming events</li>';
+  }
   $('#nextApptCard').innerHTML = nextAppt ? '<div class="krow"><span>👨‍⚕️ ' + esc(nextAppt.doctorName) + '</span></div><div class="krow"><span>🏥 ' + esc(nextAppt.hospital || '') + '</span></div><div class="krow"><span>📅 ' + fmtD(nextAppt.date) + ' • ' + esc(nextAppt.time) + '</span></div><div class="krow"><span>Status</span><b>' + esc(nextAppt.status) + '</b></div>' : 'No upcoming appointments.';
   $('#schemeList').innerHTML = schemeCheck().map(s => '<div class="krow"><span>🏛️ ' + esc(s.title) + '</span><b class="green">' + esc(s.why) + '</b></div>').join('') + '<small class="muted">AI-assisted demo check — for official confirmation, use the hospital / government portal.</small>';
-
-  const fields = ['name', 'dob', 'gender', 'phone', 'aadhaar', 'bloodGroup', 'address', 'emergencyName', 'allergies', 'conditions'];
-  const filled = fields.filter(f => ME[f] && String(ME[f]).trim()).length;
-  const profilePct = Math.round(filled / fields.length * 100);
-  const docsPct = Math.min(100, STATE.reports.length * 20);
-  const vm = STATE.meds.length ? Math.round(STATE.meds.filter(m => m.verified).length / STATE.meds.length * 100) : 100;
   $('#careBars').innerHTML = pbar('Profile', profilePct) + pbar('Documents', docsPct) + pbar('Verification', vm) + pbar('Follow-up', fu ? 60 : 100);
+  renderTodaySchedule();
 }
 function pbar(label, pct) { return '<div class="pbar"><div class="p-top"><span>' + label + '</span><span>' + pct + '%</span></div><div class="p-track"><div class="p-fill" style="width:' + pct + '%"></div></div></div>'; }
 
@@ -416,7 +567,7 @@ document.addEventListener('click', async e => {
     try {
       await db.collection('medicines').add({ patientId: ME.id, name, dosage: $('#mDose').value.trim(), startDate: $('#mStart').value || todayStr(), durationDays: $('#mDur').value, prescribedBy: ME.name + ' (self-reported)', verified: false, source: 'patient', active: true, createdAt: Date.now() });
       $('#mName').value = ''; $('#mDose').value = ''; $('#mDur').value = '';
-      toast('Added — doctor verification pending 🟡');
+      toast('Added — doctor verification pending 🔴');
     } catch (err) { toast('⚠️ ' + errMsg(err)); }
   }
   const sm = e.target.closest('[data-act="stop-med"]');
@@ -516,7 +667,6 @@ document.addEventListener('click', async e => {
       const adoc = await db.collection('appointments').doc(c.dataset.id).get();
       const a = adoc.exists ? adoc.data() : null;
       await db.collection('appointments').doc(c.dataset.id).update({ status: 'cancelled' });
-      // FIX: release the slot lock so others (or this patient) can rebook
       if (a && a.doctorId && a.date && a.time) {
         const slotId = (a.doctorId + '_' + a.date + '_' + a.time).replace(/[^a-zA-Z0-9]/g, '_');
         await db.collection('slots').doc(slotId).delete().catch(() => {});
@@ -543,12 +693,9 @@ function renderDoctorsPage() {
   }).join('') || '<p class="muted">No doctors yet.</p>';
 }
 
-/* ============================================================
-   DOCTOR LIVE MAP (patient view)
-   ============================================================ */
+/* ----- DOCTOR LIVE MAP ----- */
 function isOnline(d) { return !!(d && d.onDuty && d.location && d.location.lat != null && (Date.now() - d.location.updatedAt) < 6 * 60 * 1000); }
 function ago(ts) { const s = Math.max(1, Math.round((Date.now() - ts) / 1000)); return s < 60 ? s + ' sec ago' : Math.round(s / 60) + ' min ago'; }
-
 function renderDoctorMap() {
   if (ROLE !== 'patient') return;
   const online = STATE.doctors.filter(isOnline);
@@ -558,7 +705,6 @@ function renderDoctorMap() {
     : '<span class="chip red">No doctors on duty right now</span>';
   const info = $('#mapInfo');
   if (info) info.textContent = 'Live GPS • Location is shared only while the doctor is ON DUTY • Automatically removed on logout • Positions older than 6 minutes are hidden.';
-  // Map operations only when the page is actually visible (fixes broken tiles)
   const mapEl = $('#docMap');
   if (!mapEl || !mapEl.offsetParent) return;
   if (typeof L === 'undefined') { mapEl.innerHTML = '<p class="muted">Map library could not load — check your internet connection.</p>'; return; }
@@ -599,7 +745,7 @@ function renderUpcoming() {
   uf.innerHTML = fus.map(f => '<div class="list-item"><div class="li-main"><b>🔔 ' + esc(f.title) + '</b><small>' + esc(f.description || '') + '</small></div><span class="chip amber">Due ' + fmtD(f.due) + '</span></div>').join('') || '<p class="muted">No follow-up reminders.</p>';
   const um = $('#upMeds');
   const meds = STATE.meds.filter(m => m.active !== false);
-  um.innerHTML = meds.map(m => '<div class="list-item"><div class="li-main"><b>💊 ' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + ' • ' + (m.verified ? 'Verified by ' + esc(m.verifiedBy || 'doctor') : 'Awaiting doctor verification') + '</small></div>' + (m.verified ? '<span class="chip green">Verified ✓</span>' : '<span class="chip amber">Pending</span>') + '</div>').join('') || '<p class="muted">No active medicines.</p>';
+  um.innerHTML = meds.map(m => '<div class="list-item"><div class="li-main"><b>💊 ' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + '</small></div>' + medChip(m) + '</div>').join('') || '<p class="muted">No active medicines.</p>';
 }
 
 /* ----- TIMELINE ----- */
@@ -615,10 +761,11 @@ function renderQR() {
   if (ROLE !== 'patient') return;
   $('#qrHid').textContent = ME.healthId;
   $('#qrName').textContent = ME.name + ' • ' + ageOf(ME.dob) + ' • ' + (ME.bloodGroup || '');
-  if (qrDone) return; qrDone = true;
+  const box = $('#qrBox'); if (!box) return;
+  box.innerHTML = '';
   try {
-    new QRCode($('#qrBox'), { text: JSON.stringify({ app: 'CareVault', healthId: ME.healthId, name: ME.name, blood: ME.bloodGroup }), width: 190, height: 190, colorDark: '#111', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
-  } catch (e) { $('#qrBox').textContent = 'QR library failed to load (check internet).'; }
+    new QRCode(box, { text: JSON.stringify({ app: 'CareVault', healthId: ME.healthId, name: ME.name, blood: ME.bloodGroup }), width: 190, height: 190, colorDark: '#111', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
+  } catch (e) { box.textContent = 'QR library failed to load (check internet).'; }
 }
 function openEmergency(withLookup) {
   $('#emOverlay').classList.remove('hidden');
@@ -691,9 +838,7 @@ function renderAccess() {
   el.innerHTML = STATE.access.map(a => '<div class="list-item"><div class="li-main"><b>' + (a.actorRole === 'doctor' ? '👨‍⚕️' : a.actorRole === 'hospital' ? '🏥' : '🤖') + ' ' + esc(a.actorName) + '</b><small>' + esc(a.action) + '</small></div><small class="muted">' + fmtDT(a.createdAt) + '</small></div>').join('') || '<p class="muted">No access events yet — your full audit trail will appear here.</p>';
 }
 
-/* ============================================================
-   HEALTH TRACKING
-   ============================================================ */
+/* ----- HEALTH TRACKING ----- */
 const TREND_COLORS = { temp: '#ea580c', bp: '#2563eb', hr: '#dc2626', wt: '#16a34a' };
 function parseBp(bp) { if (!bp) return null; const m = String(bp).match(/(\d+)\s*\/\s*(\d+)/); return m ? { s: +m[1], d: +m[2] } : null; }
 function num(v) { const n = Number(v); return isNaN(n) ? null : n; }
@@ -787,7 +932,7 @@ document.addEventListener('click', async e => {
   const hit = s => (s || '').toLowerCase().includes(q);
   let html = '';
   STATE.timeline.filter(t => hit(t.title) || hit(t.description)).forEach(t => html += '<div class="list-item"><div class="li-main"><b>' + (t.icon || '•') + ' ' + esc(t.title) + '</b><small>🕐 Timeline • ' + esc(t.description || '') + '</small></div><small class="muted">' + fmtD(t.date) + '</small></div>');
-  STATE.meds.filter(m => hit(m.name)).forEach(m => html += '<div class="list-item"><div class="li-main"><b>💊 ' + esc(m.name) + '</b><small>Medicine • ' + esc(m.dosage || '') + '</small></div>' + (m.verified ? '<span class="chip green">Verified ✓</span>' : '') + '</div>');
+  STATE.meds.filter(m => hit(m.name)).forEach(m => html += '<div class="list-item"><div class="li-main"><b>💊 ' + esc(m.name) + '</b><small>Medicine • ' + esc(m.dosage || '') + '</small></div>' + medChip(m) + '</div>');
   STATE.reports.filter(r => hit(r.title) || hit(r.type)).forEach(r => html += '<div class="list-item"><div class="li-main"><b>🧪 ' + esc(r.title) + '</b><small>Report • ' + esc(r.type) + '</small></div><small class="muted">' + fmtD(r.date) + '</small></div>');
   $('#searchResultsBody').innerHTML = html || '<p class="muted">No matches found in your records.</p>';
 });
@@ -809,7 +954,7 @@ function chatbotAnswer(q) {
   const next = STATE.appts.filter(a => a.status === 'upcoming' && a.date >= todayStr()).sort((a, b) => a.date.localeCompare(b.date))[0];
   if (q.includes('appointment') || q.includes('next') || q.includes('upcoming')) return next ? '📅 Your next appointment: <b>' + esc(next.doctorName) + '</b> on <b>' + fmtD(next.date) + '</b> at <b>' + esc(next.time) + '</b>, ' + esc(next.hospital || '') + '.' : '📅 You have no upcoming appointments. You can book one on the Appointments page.';
   if (q.includes('map') || q.includes('location') || q.includes('where is')) { const on = STATE.doctors.filter(isOnline); return on.length ? '🗺️ ' + on.length + ' doctor(s) are currently ON DUTY with live location. Open the <b>Doctor Map</b> page to see them.' : '🗺️ No doctors are on duty right now. Doctors appear on the map only while they are on duty.'; }
-  if (q.includes('medicine') || q.includes('tablet') || q.includes('meds')) { const m = STATE.meds.filter(x => x.active !== false); return m.length ? '💊 Active medicines:<br>' + m.map(x => '• <b>' + esc(x.name) + '</b> — ' + esc(x.dosage || '') + (x.verified ? ' ✅' : ' (pending verification)')).join('<br>') : '💊 No active medicines on record.'; }
+  if (q.includes('medicine') || q.includes('tablet') || q.includes('meds')) { const m = STATE.meds.filter(x => x.active !== false); return m.length ? '💊 Active medicines:<br>' + m.map(x => '• <b>' + esc(x.name) + '</b> — ' + esc(x.dosage || '') + (x.verified ? ' ✅ Verified — ready to take' : ' 🔴 pending verification')).join('<br>') : '💊 No active medicines on record.'; }
   if (q.includes('surgery') || q.includes('operation')) { const s = (ME.surgeries || '').split('\n').filter(Boolean); return s.length ? '🔪 Surgeries on record:<br>' + s.map(x => '• ' + esc(x)).join('<br>') : '🔪 No surgeries recorded.'; }
   if (q.includes('note') || q.includes('last visit') || q.includes('doctor wrote') || q.includes('review')) { const c = STATE.cases.find(x => x.status === 'reviewed'); return c ? '🩺 Last reviewed by <b>Dr. ' + esc(c.doctorName) + '</b> (' + fmtDT(c.reviewedAt) + '):<br>• Notes: ' + esc(c.doctorNotes || '—') + '<br>• Prescription: ' + esc(c.prescriptionText || '—') + '<br>• Tests: ' + esc(c.tests || '—') : '🟡 No doctor review has happened yet.'; }
   if (q.includes('report')) { return STATE.reports.length ? '🧪 Reports:<br>' + STATE.reports.slice(0, 6).map(r => '• ' + esc(r.title) + ' (' + fmtD(r.date) + ')').join('<br>') : '🧪 No reports uploaded yet.'; }
@@ -846,7 +991,7 @@ function sendChat() {
   notify(CHAT_WITH.id, '💬 New message', (ROLE === 'doctor' ? 'Dr. ' + ME.name : ME.name) + ': ' + t.slice(0, 60));
 }
 
-/* ----- SETTINGS (re-renders fresh every visit — FIX) ----- */
+/* ----- SETTINGS ----- */
 document.addEventListener('click', e => {
   const f = e.target.closest('[data-act="font"]'); if (f) { setFont(f.dataset.v); toast('Font size: ' + f.dataset.v); }
 });
@@ -881,7 +1026,7 @@ function bindDoctor() {
   UNBINDS.push(db.collection('cases').where('status', '==', 'waiting').onSnapshot(s => { STATE.cases = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.createdAt - b.createdAt); renderDoctorCases(); renderDocDash(); }, console.error));
   UNBINDS.push(db.collection('cases').where('doctorId', '==', ME.id).onSnapshot(s => { STATE.myReviewed = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.reviewedAt || 0) - (a.reviewedAt || 0)); renderDoctorCases(); }, console.error));
   UNBINDS.push(db.collection('appointments').where('doctorId', '==', ME.id).onSnapshot(s => { STATE.appts = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.date || '').localeCompare(b.date || '')); renderDocAppts(); renderDocDash(); }, console.error));
-  UNBINDS.push(db.collection('users').where('role', '==', 'patient').onSnapshot(s => { STATE.patients = s.docs.map(d => ({ id: d.id, ...d.data() })); renderPatients(); renderDocDash(); renderVerifyMeds(); }, console.error));
+  UNBINDS.push(db.collection('users').where('role', '==', 'patient').onSnapshot(s => { STATE.patients = s.docs.map(d => ({ id: d.id, ...d.data() })); renderPatients(); renderDocDash(); renderVerifyMeds(); renderDChats(); }, console.error));
   UNBINDS.push(db.collection('medicines').where('verified', '==', false).onSnapshot(s => { STATE.unverifiedMeds = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderVerifyMeds(); renderDocDash(); }, console.error));
 }
 
@@ -921,22 +1066,32 @@ function setDuty(on) {
 function renderDocDash() {
   if (ROLE !== 'doctor') return;
   const today = todayStr();
-  const stats = [['🟡 Pending Cases', STATE.cases.length], ['📅 Today\'s Appointments', STATE.appts.filter(a => a.date === today && a.status === 'upcoming').length], ['👥 Patients on Platform', STATE.patients.length]];
-  const st = $('#ddStats'); if (st) st.innerHTML = stats.map(([k, v]) => '<div class="card center"><h4>' + k + '</h4><p style="font-size:30px;font-weight:800;color:var(--primary)">' + v + '</p></div>').join('');
+  const stats = [['🟡 Pending Cases', STATE.cases.length], ['📅 Today\'s Appointments', STATE.appts.filter(a => a.date === today && a.status === 'upcoming').length], ['👥 Patients', STATE.patients.length]];
+  const st = $('#ddStats'); if (st) st.innerHTML = stats.map(([k, v]) => '<div class="card center" style="margin:0"><h4>' + k + '</h4><p style="font-size:28px;font-weight:800;color:var(--primary)">' + v + '</p></div>').join('');
   renderDutyToggle();
+
+  // 🔴→🟩 Bottom-center Verify CTA
   const un = (STATE.unverifiedMeds || []).length;
-  const vc = $('#verifyCard');
-  if (vc) vc.innerHTML = '<h4>💊 Medicine Verification <span class="chip ' + (un ? 'red' : 'green') + '">' + un + ' pending</span></h4>' +
-    '<p class="muted sm-txt">Patient-reported medicines become <b>"Doctor Verified ✓"</b> only after you confirm them — the trust layer of Care Vault.</p>' +
-    '<button class="btn primary sm" data-nav="d-verify">Open Verification Center →</button>';
+  const cta = $('#verifyCta');
+  if (cta) cta.innerHTML = '<h4>💊 Medicine Verification — the Care Vault trust layer</h4>' +
+    '<p class="muted sm-txt">Patient-reported medicines stay RED (pending) until you verify them. Once verified, they instantly turn GREEN on the patient\'s portal — "Ready to take ✓".</p>' +
+    '<button class="btn big ' + (un ? 'verify-red' : 'verify-green') + '" data-nav="d-verify">' +
+    (un ? '🔴 ' + un + ' MEDICINE' + (un > 1 ? 'S' : '') + ' PENDING VERIFICATION — CLICK TO VERIFY NOW' : '✅ ALL MEDICINES VERIFIED — NO ACTION NEEDED') + '</button>';
+
   const dp = $('#ddPending'); if (dp) dp.innerHTML = STATE.cases.map(caseRow).join('') || '<p class="muted">🎉 No pending cases!</p>';
+
+  // 📅 Today's appointments with Time + Queue number + clickable patient
+  const todays = STATE.appts.filter(a => a.date === today).sort((a, b) => timeToMin(a.time) - timeToMin(b.time));
   const dt = $('#ddToday');
-  if (dt) dt.innerHTML = STATE.appts.filter(a => a.date === today).map(a =>
-    '<div class="list-item"><div class="li-main"><b>' + esc(a.patientName) + '</b><small>' + esc(a.time) + ' • ' + esc(a.type || '') + '</small></div>' +
+  if (dt) dt.innerHTML = todays.map((a, i) =>
+    '<div class="list-item"><div class="li-main"><b><span class="queue-chip">🎟️ Queue #' + (i + 1) + '</span> ' + esc(a.time || '') + ' — ' +
+    '<button class="linklike" data-act="view-patient" data-id="' + a.patientId + '">' + esc(a.patientName) + '</button></b>' +
+    '<small>' + esc(a.type || '') + ' • ' + esc(a.department || '') + ' • ' + esc(a.healthId || '') + '</small></div>' +
     '<div class="li-actions">' + (a.status === 'upcoming' ? '<button class="btn primary sm" data-act="complete-appt" data-id="' + a.id + '">Done</button>' : '<span class="chip green">' + esc(a.status) + '</span>') + '</div></div>').join('') || '<p class="muted">No appointments today.</p>';
 }
 function caseRow(c) {
-  return '<div class="list-item"><div class="li-main"><b>' + esc(c.patientName) + ' <span class="chip blue">' + esc(c.healthId || '') + '</span></b>' +
+  return '<div class="list-item"><div class="li-main"><b>' +
+    '<button class="linklike" data-act="view-patient" data-id="' + c.patientId + '">' + esc(c.patientName) + '</button> <span class="chip blue">' + esc(c.healthId || '') + '</span></b>' +
     '<small>' + esc(c.chiefComplaint) + ' • ' + esc(c.duration || '') + ' • ' + esc(c.severity || '') + ' • ' + fmtDT(c.createdAt) + '</small></div>' +
     '<div class="li-actions"><button class="btn primary sm" data-act="open-case" data-id="' + c.id + '">Review →</button></div></div>';
 }
@@ -947,7 +1102,7 @@ function renderDoctorCases() {
   el.innerHTML = list.map(caseRow).join('') || '<p class="muted">No cases in this tab.</p>';
 }
 
-/* ----- MEDICINE VERIFICATION CENTER ----- */
+/* ----- MEDICINE VERIFICATION CENTER (red → green) ----- */
 function renderVerifyMeds() {
   const el = $('#dvList'); if (!el || ROLE !== 'doctor') return;
   const meds = STATE.unverifiedMeds || [];
@@ -955,8 +1110,18 @@ function renderVerifyMeds() {
     const p = STATE.patients.find(x => x.id === m.patientId) || {};
     return '<div class="list-item"><div class="li-main"><b>' + esc(m.name) + ' <span class="chip blue">' + esc(p.healthId || '') + '</span></b>' +
       '<small>Patient: ' + esc(p.name || 'Unknown') + ' • ' + esc(m.dosage || '') + ' • reported by ' + esc(m.prescribedBy || 'patient') + ' • ' + fmtDT(m.createdAt) + '</small></div>' +
-      '<div class="li-actions"><button class="btn primary sm" data-act="verify-med" data-id="' + m.id + '" data-pid="' + m.patientId + '" data-name="' + esc(m.name) + '">Verify ✓</button></div></div>';
-  }).join('') || '<p class="muted">🎉 Excellent — every medicine on the platform is doctor-verified.</p>';
+      '<div class="li-actions"><button class="btn verify-red sm" data-act="verify-med" data-id="' + m.id + '" data-pid="' + m.patientId + '" data-name="' + esc(m.name) + '">🔴 PENDING — VERIFY ✓</button></div></div>';
+  }).join('') || '<p class="muted">🟩 Excellent — every medicine on the platform is verified. Patients see "Ready to take ✓" in green.</p>';
+}
+
+/* ----- DOCTOR MESSAGES (chat list) ----- */
+function renderDChats() {
+  const el = $('#dChatList'); if (!el || ROLE !== 'doctor') return;
+  el.innerHTML = STATE.patients.map(p =>
+    '<div class="list-item"><div class="li-main"><b>🧑 ' + esc(p.name) + ' <span class="chip blue">' + esc(p.healthId || '') + '</span></b>' +
+    '<small>' + ageOf(p.dob) + ' • ' + esc(p.gender || '') + ' • 🩸 ' + esc(p.bloodGroup || '—') + ' • 📞 ' + esc(p.phone || '—') + '</small></div>' +
+    '<div class="li-actions"><button class="btn ghost sm" data-act="view-patient" data-id="' + p.id + '">👤 Full Details</button>' +
+    '<button class="btn primary sm" data-act="open-chat" data-id="' + p.id + '" data-name="' + esc(p.name) + '">💬 Chat</button></div></div>').join('') || '<p class="muted">No patients yet.</p>';
 }
 
 /* ----- OPEN CASE (consent check) ----- */
@@ -1006,7 +1171,7 @@ async function renderCaseDetail() {
   $('#prescRows').innerHTML = prescRowHTML();
   $('#cdMedVerify').innerHTML = meds.map(m =>
     '<div class="list-item"><div class="li-main"><b>' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + ' • by ' + esc(m.prescribedBy || '') + '</small></div>' +
-    '<div class="li-actions">' + (m.verified ? '<span class="chip green">🟩 Verified ✓ ' + esc(m.verifiedBy || '') + '</span>' : '<button class="btn primary sm" data-act="verify-med" data-id="' + m.id + '" data-pid="' + c.patientId + '" data-name="' + esc(m.name) + '">Verify ✓</button>') + '</div></div>').join('') || '<p class="muted">No medicines.</p>';
+    '<div class="li-actions">' + (m.verified ? '<span class="chip ready">🟩 Verified ✓ ' + esc(m.verifiedBy || '') + '</span>' : '<button class="btn verify-red sm" data-act="verify-med" data-id="' + m.id + '" data-pid="' + c.patientId + '" data-name="' + esc(m.name) + '">🔴 PENDING — VERIFY ✓</button>') + '</div></div>').join('') || '<p class="muted">No medicines.</p>';
 }
 function prescRowHTML() {
   return '<div class="presc-row"><input class="input p-name" placeholder="Medicine"><input class="input p-dose" placeholder="Dose/instructions"><input class="input p-days" placeholder="Days"><input class="input p-inst" placeholder="Before/after food…"></div>';
@@ -1017,8 +1182,8 @@ document.addEventListener('click', e => {
   if (vm) {
     db.collection('medicines').doc(vm.dataset.id).update({ verified: true, verifiedBy: 'Dr. ' + ME.name, verifiedAt: Date.now() }).then(() => {
       logAccess(vm.dataset.pid, '👨‍⚕️ Dr. ' + ME.name + ' verified medicine: ' + vm.dataset.name);
-      notify(vm.dataset.pid, '💊 Medicine Verified', 'Dr. ' + ME.name + ' verified: ' + vm.dataset.name);
-      toast('🟩 Medicine verified — it is now Doctor-Verified ✓');
+      notify(vm.dataset.pid, '🟩 Medicine Verified — Ready to Take', 'Dr. ' + ME.name + ' verified: ' + vm.dataset.name + '. It is now safe to take as prescribed.');
+      toast('🟩 Verified! Patient portal updated to GREEN — "Ready to take ✓"');
     }).catch(err => toast('⚠️ ' + errMsg(err)));
   }
 });
@@ -1068,16 +1233,17 @@ function renderPatients() {
 
 function renderDocAppts() {
   const el = $('#daList'); if (!el || ROLE !== 'doctor') return;
-  el.innerHTML = STATE.appts.map(a =>
-    '<div class="list-item"><div class="li-main"><b>' + esc(a.patientName) + ' • ' + fmtD(a.date) + ' ' + esc(a.time) + '</b><small>' + esc(a.type || '') + ' • ' + esc(a.reason || '') + '</small></div>' +
+  const sorted = STATE.appts.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  el.innerHTML = sorted.map(a =>
+    '<div class="list-item"><div class="li-main"><b>' + fmtD(a.date) + ' ' + esc(a.time || '') + ' — ' +
+    '<button class="linklike" data-act="view-patient" data-id="' + a.patientId + '">' + esc(a.patientName) + '</button></b>' +
+    '<small>' + esc(a.type || '') + ' • ' + esc(a.reason || '') + '</small></div>' +
     '<div class="li-actions"><span class="chip ' + (a.status === 'upcoming' ? 'blue' : a.status === 'completed' ? 'green' : 'red') + '">' + esc(a.status) + '</span>' +
     (a.status === 'upcoming' ? '<button class="btn primary sm" data-act="complete-appt" data-id="' + a.id + '">Mark Done</button>' : '') + '</div></div>').join('') || '<p class="muted">No appointments.</p>';
 }
 
 /* ============================================================
-   FULL PATIENT PROFILE — Doctor & Hospital see EVERYTHING
-   the patient filled at registration + live record data.
-   Every view is logged into the patient's audit trail.
+   FULL PATIENT / DOCTOR PROFILE MODALS
    ============================================================ */
 document.addEventListener('click', e => {
   const vp = e.target.closest('[data-act="view-patient"]');
@@ -1099,7 +1265,7 @@ async function openPatientProfile(pid) {
   try { const r = await db.collection('vitals').where('patientId', '==', pid).get(); vitals = r.docs.map(d => d.data()).sort((a, b) => b.createdAt - a.createdAt); } catch (e) {}
   const lv = vitals[0];
   const bp = lv ? parseBp(lv.bp) : null;
-  const html =
+  $('#modalCard').innerHTML =
     '<h3>👤 ' + esc(p.name) + ' <span class="chip blue">' + esc(p.healthId || '') + '</span></h3>' +
     '<h4 style="margin-top:10px">📝 Registration Details (everything the patient filled)</h4>' +
     '<div class="kv">' + kvRows([
@@ -1124,7 +1290,6 @@ async function openPatientProfile(pid) {
     ] : [['Status', 'No vitals recorded']]) + '</div>' +
     '<small class="muted">🔐 This profile view has been logged in the patient\'s audit trail.</small>' +
     modalCloseBtn();
-  $('#modalCard').innerHTML = html;
 }
 
 async function openDoctorProfile(did) {
@@ -1135,7 +1300,7 @@ async function openDoctorProfile(did) {
   let appts = [], reviewed = 0;
   try { const r = await db.collection('appointments').where('doctorId', '==', did).get(); appts = r.docs.map(x => x.data()); } catch (e) {}
   try { const r = await db.collection('cases').where('doctorId', '==', did).get(); reviewed = r.size; } catch (e) {}
-  const html =
+  $('#modalCard').innerHTML =
     '<h3>👨‍⚕️ Dr. ' + esc(d.name) + ' ' + (isOnline(d) ? '<span class="chip green">🟢 On duty</span>' : '<span class="chip">⚪ Off duty</span>') + '</h3>' +
     '<h4 style="margin-top:10px">📝 Registration Details (everything the doctor filled)</h4>' +
     '<div class="kv">' + kvRows([
@@ -1150,16 +1315,16 @@ async function openDoctorProfile(did) {
     '<h4 style="margin-top:12px">📅 Recent Appointments</h4>' +
     (appts.length ? '<div class="kv">' + appts.sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 6).map(a => '<div class="krow"><span>' + esc(a.patientName) + '</span><small>' + fmtD(a.date) + ' ' + esc(a.time) + ' • ' + esc(a.status) + '</small></div>').join('') + '</div>' : '<p class="muted">None yet</p>') +
     modalCloseBtn();
-  $('#modalCard').innerHTML = html;
 }
 
 /* ============================================================
-   HOSPITAL — sees ALL details of doctors and patients
+   HOSPITAL
    ============================================================ */
 function bindHospital() {
-  let pending = 0;
+  let inFlight = false, queued = false;
   const refresh = async () => {
-    pending++; if (pending > 1) return; // debounce overlapping fetches
+    if (inFlight) { queued = true; return; }
+    inFlight = true;
     try {
       const [as, cs, ms, ds, ps] = await Promise.all([
         db.collection('appointments').get(),
@@ -1173,9 +1338,10 @@ function bindHospital() {
       STATE.medsAll = ms.docs.map(x => ({ id: x.id, ...x.data() })).sort((a, b) => b.createdAt - a.createdAt);
       STATE.doctors = ds.docs.map(x => ({ id: x.id, ...x.data() }));
       STATE.patients = ps.docs.map(x => ({ id: x.id, ...x.data() }));
-      renderHospital(); renderHPatients(); renderHDoctors(); renderHCases(); renderHMeds();
+      renderHospital(); renderHPatients(); renderHDoctors(); renderHCases(); renderHMeds(); renderHAppts();
     } catch (e) { console.error(e); }
-    pending--; if (pending > 0) { pending = 0; refresh(); }
+    inFlight = false;
+    if (queued) { queued = false; refresh(); }
   };
   UNBINDS.push(db.collection('appointments').onSnapshot(refresh, console.error));
   UNBINDS.push(db.collection('cases').onSnapshot(refresh, console.error));
@@ -1198,9 +1364,25 @@ function renderHospital() {
   $('#hhVerify').innerHTML =
     '<div class="krow"><span>Total Medicines</span><b>' + STATE.medsAll.length + '</b></div>' +
     '<div class="krow"><span>🟩 Doctor Verified</span><b>' + STATE.medsAll.filter(m => m.verified).length + '</b></div>' +
-    '<div class="krow"><span>🟦 Awaiting Verification</span><b>' + unv + '</b></div>' +
+    '<div class="krow"><span>🔴 Awaiting Verification</span><b>' + unv + '</b></div>' +
     '<div class="krow"><span>📋 Total Cases</span><b>' + STATE.allCases.length + '</b></div>' +
     '<div class="krow"><span>🟡 Cases Waiting</span><b>' + STATE.allCases.filter(c => c.status === 'waiting').length + '</b></div>';
+}
+function renderHAppts() {
+  if (ROLE !== 'hospital') return;
+  const el = $('#hApptTable'); if (!el) return;
+  const rows = STATE.appts.slice()
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .map(a => [
+      fmtD(a.date),
+      esc(a.time || ''),
+      esc(a.patientName || '') + '<br><small class="muted">' + esc(a.healthId || '') + '</small>',
+      esc(a.doctorName || ''),
+      esc(a.department || '—'),
+      esc(a.type || '—'),
+      '<span class="chip ' + (a.status === 'upcoming' ? 'blue' : a.status === 'completed' ? 'green' : 'red') + '">' + esc(a.status) + '</span>'
+    ]);
+  el.innerHTML = tableHTML(['Date', 'Time', 'Patient', 'Doctor', 'Department', 'Type', 'Status'], rows);
 }
 const hps = $('#hPatSearch');
 if (hps) hps.addEventListener('input', renderHPatients);
@@ -1233,7 +1415,7 @@ function renderHMeds() {
   const rows = STATE.medsAll.map(m => {
     const p = STATE.patients.find(x => x.id === m.patientId) || {};
     return [esc(m.name), esc(p.name || '—') + '<br><small class="muted">' + esc(p.healthId || '') + '</small>', esc(m.dosage || ''), esc(m.source === 'doctor' ? '👨‍⚕️ Doctor' : '🟦 Patient'),
-      m.verified ? '<span class="chip green">🟩 Verified ✓ ' + esc(m.verifiedBy || '') + '</span>' : '<span class="chip amber">🟦 Pending</span>', fmtDT(m.createdAt)];
+      m.verified ? '<span class="chip ready">🟩 Verified ✓ ' + esc(m.verifiedBy || '') + '</span>' : '<span class="chip waiting">🔴 Pending</span>', fmtDT(m.createdAt)];
   });
   $('#hMedTable').innerHTML = tableHTML(['Medicine', 'Patient', 'Dosage', 'Source', 'Verification', 'Added'], rows);
 }
@@ -1255,9 +1437,7 @@ document.addEventListener('click', async e => {
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
 
-/* ============================================================
-   VOICE SCRIBE
-   ============================================================ */
+/* ----- VOICE SCRIBE ----- */
 document.addEventListener('click', e => {
   const m = e.target.closest('[data-act="mic"]'); if (!m) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
