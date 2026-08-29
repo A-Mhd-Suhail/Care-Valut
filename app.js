@@ -1,9 +1,7 @@
 /* ============================================================
-   CARE VAULT v11 — FINAL
-   Patient dashboards cleaned (no Health Overview / AI scheme),
-   doctor dashboard in doctor POV (no AI insights), hospital
-   dashboard cleaned, notifications render fix, universal
-   calendar date picker, settings+photo fixed, billing, i18n.
+   MHD HOSPITAL — My Health Defense Hospital 24×7
+   Built For Ministry of Ayush
+   v12: full rebrand from Care Vault • no animations anywhere
    ============================================================ */
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -93,22 +91,22 @@ document.addEventListener('click', () => $$('.dp.open').forEach(w => w.classList
 /* ---------- I18N (10 Indian languages) ---------- */
 const LANGS = [['en','English'],['hi','हिन्दी'],['ta','தமிழ்'],['te','తెలుగు'],['ml','മലയാളം'],['kn','ಕನ್ನಡ'],['bn','বাংলা'],['mr','मराठी'],['gu','ગુજરાતી'],['pa','ਪੰਜਾਬੀ']];
 const I18N = {
- en:{dashboard:'Dashboard',upcoming:'Upcoming',mycase:'My Case',meds:'Medicines',reports:'Reports',appts:'Appointments',doctors:'My Doctors',timeline:'Timeline',tracking:'Health Tracking',qr:'My QR',privacy:'Privacy & Access',billing:'Billing',notifs:'Notifications',settings:'Settings',emergency:'Emergency',logout:'Logout',cases:'Cases',verify:'Verify Medicines',chats:'Messages',patients:'Patients',dappts:'My Appointments',earnings:'My Earnings',hdash:'Hospital Dashboard',hpatients:'All Patients',hdoctors:'All Doctors',hcases:'All Cases',hmeds:'Medicines',happts:'Appointments',hupload:'Upload Report',greetM:'Good Morning',greetA:'Good Afternoon',greetE:'Good Evening',page:'Care Vault'},
- hi:{dashboard:'डैशबोर्ड',upcoming:'आगामी',mycase:'मेरा केस',meds:'दवाइयाँ',reports:'रिपोर्ट',appts:'अपॉइंटमेंट',doctors:'मेरे डॉक्टर',timeline:'टाइमलाइन',tracking:'स्वास्थ्य ट्रैकिंग',qr:'मेरा QR',privacy:'गोपनीयता व पहुँच',billing:'बिल',notifs:'सूचनाएँ',settings:'सेटिंग्स',emergency:'आपातकाल',logout:'लॉगआउट',cases:'केस',verify:'दवा सत्यापन',chats:'संदेश',patients:'मरीज़',dappts:'मेरे अपॉइंटमेंट',earnings:'मेरी कमाई',hdash:'अस्पताल डैशबोर्ड',hpatients:'सभी मरीज़',hdoctors:'सभी डॉक्टर',hcases:'सभी केस',hmeds:'दवाइयाँ',happts:'अपॉइंटमेंट',hupload:'रिपोर्ट अपलोड',greetM:'सुप्रभात',greetA:'नमस्कार',greetE:'शुभ संध्या',page:'केयर वॉल्ट'},
- ta:{dashboard:'டாஷ்போர்டு',upcoming:'வரவிருக்கும்',mycase:'என் கேஸ்',meds:'மருந்துகள்',reports:'அறிக்கைகள்',appts:'சந்திப்புகள்',doctors:'என் மருத்துவர்கள்',timeline:'காலவரிசை',tracking:'உடல்நல கண்காணிப்பு',qr:'என் QR',privacy:'தனியுரிமை & அணுகல்',billing:'பில்',notifs:'அறிவிப்புகள்',settings:'அமைப்புகள்',emergency:'அவசரம்',logout:'வெளியேறு',cases:'கேஸ்கள்',verify:'மருந்து சரிபார்ப்பு',chats:'செய்திகள்',patients:'நோயாளிகள்',dappts:'என் சந்திப்புகள்',earnings:'என் வருவாய்',hdash:'மருத்துவமனை டாஷ்போர்டு',hpatients:'அனைத்து நோயாளிகள்',hdoctors:'அனைத்து மருத்துவர்கள்',hcases:'அனைத்து கேஸ்கள்',hmeds:'மருந்துகள்',happts:'சந்திப்புகள்',hupload:'அறிக்கை பதிவேற்றம்',greetM:'காலை வணக்கம்',greetA:'மதிய வணக்கம்',greetE:'மாலை வணக்கம்',page:'கேர் வால்ட்'},
- te:{dashboard:'డాష్‌బోర్డ్',upcoming:'రాబోయేవి',mycase:'నా కేసు',meds:'మందులు',reports:'నివేదికలు',appts:'అపాయింట్‌మెంట్లు',doctors:'నా డాక్టర్లు',timeline:'టైమ్‌లైన్',tracking:'ఆరోగ్య ట్రాకింగ్',qr:'నా QR',privacy:'గోప్యత & యాక్సెస్',billing:'బిల్లు',notifs:'నోటిఫికేషన్లు',settings:'సెట్టింగ్‌లు',emergency:'అత్యవసరం',logout:'లాగ్ అవుట్',cases:'కేసులు',verify:'మందు ధృవీకరణ',chats:'సందేశాలు',patients:'రోగులు',dappts:'నా అపాయింట్‌మెంట్లు',earnings:'నా ఆదాయం',hdash:'ఆసుపత్రి డాష్‌బోర్డ్',hpatients:'అన్ని రోగులు',hdoctors:'అన్ని డాక్టర్లు',hcases:'అన్ని కేసులు',hmeds:'మందులు',happts:'అపాయింట్‌మెంట్లు',hupload:'నివేదిక అప్‌లోడ్',greetM:'శుభోదయం',greetA:'శుభ మధ్యాహ్నం',greetE:'శుభ సాయంత్రం',page:'కేర్ వాల్ట్'},
- ml:{dashboard:'ഡാഷ്ബോർഡ്',upcoming:'വരാനിരിക്കുന്നവ',mycase:'എന്റെ കേസ്',meds:'മരുന്നുകൾ',reports:'റിപ്പോർട്ടുകൾ',appts:'അപ്പോയിന്റ്മെന്റുകൾ',doctors:'എന്റെ ഡോക്ടർമാർ',timeline:'ടൈംലൈൻ',tracking:'ഹെൽത്ത് ട്രാക്കിംഗ്',qr:'എന്റെ QR',privacy:'സ്വകാര്യത & ആക്സസ്സ്',billing:'ബിൽ',notifs:'അറിയിപ്പുകൾ',settings:'സെറ്റിംഗ്സ്',emergency:'അത്യാഹിതം',logout:'ലോഗ് ഔട്ട്',cases:'കേസുകൾ',verify:'മരുന്ന് സ്ഥിരീകരണം',chats:'സന്ദേശങ്ങൾ',patients:'രോഗികൾ',dappts:'എന്റെ അപ്പോയിന്റ്മെന്റുകൾ',earnings:'എന്റെ വരുമാനം',hdash:'ആശുപത്രി ഡാഷ്ബോർഡ്',hpatients:'എല്ലാ രോഗികൾ',hdoctors:'എല്ലാ ഡോക്ടർമാർ',hcases:'എല്ലാ കേസുകൾ',hmeds:'മരുന്നുകൾ',happts:'അപ്പോയിന്റ്മെന്റുകൾ',hupload:'റിപ്പോർട്ട് അപ്‌ലോഡ്',greetM:'സുപ്രഭാതം',greetA:'ശുഭ ഉച്ച',greetE:'ശുഭ സന്ധ്യ',page:'കെയർ വോൾട്ട്'},
- kn:{dashboard:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',upcoming:'ಮುಂಬರುವ',mycase:'ನನ್ನ ಪ್ರಕರಣ',meds:'ಔಷಧಿಗಳು',reports:'ವರದಿಗಳು',appts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',doctors:'ನನ್ನ ವೈದ್ಯರು',timeline:'ಟೈಮ್‌ಲೈನ್',tracking:'ಆರೋಗ್ಯ ಟ್ರ್ಯಾಕಿಂಗ್',qr:'ನನ್ನ QR',privacy:'ಗೋಪ್ಯತೆ ಮತ್ತು ಪ್ರವೇಶ',billing:'ಬಿಲ್',notifs:'ಅಧಿಸೂಚನೆಗಳು',settings:'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',emergency:'ತುರ್ತು',logout:'ಲಾಗ್ ಔಟ್',cases:'ಪ್ರಕರಣಗಳು',verify:'ಔಷಧ ಪರಿಶೀಲನೆ',chats:'ಸಂದೇಶಗಳು',patients:'ರೋಗಿಗಳು',dappts:'ನನ್ನ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',earnings:'ನನ್ನ ಆದಾಯ',hdash:'ಆಸ್ಪತ್ರೆ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',hpatients:'ಎಲ್ಲಾ ರೋಗಿಗಳು',hdoctors:'ಎಲ್ಲಾ ವೈದ್ಯರು',hcases:'ಎಲ್ಲಾ ಪ್ರಕರಣಗಳು',hmeds:'ಔಷಧಿಗಳು',happts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',hupload:'ವರದಿ ಅಪ್‌ಲೋಡ್',greetM:'ಶುಭೋದಯ',greetA:'ಶುಭ ಮಧ್ಯಾಹ್ನ',greetE:'ಶುಭ ಸಂಜೆ',page:'ಕೇರ್ ವಾಲ್ಟ್'},
- bn:{dashboard:'ড্যাশবোর্ড',upcoming:'আসন্ন',mycase:'আমার কেস',meds:'ওষুধ',reports:'রিপোর্ট',appts:'অ্যাপয়েন্টমেন্ট',doctors:'আমার ডাক্তার',timeline:'টাইমলাইন',tracking:'হেলথ ট্র্যাকিং',qr:'আমার QR',privacy:'গোপনীয়তা ও অ্যাক্সেস',billing:'বিল',notifs:'বিজ্ঞপ্তি',settings:'সেটিংস',emergency:'জরুরি',logout:'লগআউট',cases:'কেস',verify:'ওষুধ যাচাই',chats:'বার্তা',patients:'রোগী',dappts:'আমার অ্যাপয়েন্টমেন্ট',earnings:'আমার আয়',hdash:'হাসপাতাল ড্যাশবোর্ড',hpatients:'সব রোগী',hdoctors:'সব ডাক্তার',hcases:'সব কেস',hmeds:'ওষুধ',happts:'অ্যাপয়েন্টমেন্ট',hupload:'রিপোর্ট আপলোড',greetM:'সুপ্রভাত',greetA:'শুভ অপরাহ্ন',greetE:'শুভ সন্ধ্যা',page:'কেয়ার ভল্ট'},
- mr:{dashboard:'डॅशबोर्ड',upcoming:'आगामी',mycase:'माझा केस',meds:'औषधे',reports:'अहवाल',appts:'अपॉइंटमेंट',doctors:'माझे डॉक्टर',timeline:'टाइमलाइन',tracking:'आरोग्य ट्रॅकिंग',qr:'माझा QR',privacy:'गोपनीयता व प्रवेश',billing:'बिल',notifs:'सूचना',settings:'सेटिंग्ज',emergency:'आपत्कालीन',logout:'लॉगआउट',cases:'केस',verify:'औषध पडताळणी',chats:'संदेश',patients:'रुग्ण',dappts:'माझी अपॉइंटमेंट',earnings:'माझी कमाई',hdash:'रुग्णालय डॅशबोर्ड',hpatients:'सर्व रुग्ण',hdoctors:'सर्व डॉक्टर',hcases:'सर्व केस',hmeds:'औषधे',happts:'अपॉइंटमेंट',hupload:'अहवाल अपलोड',greetM:'शुभ प्रभात',greetA:'नमस्कार',greetE:'शुभ संध्याकाळ',page:'केअर व्हॉल्ट'},
- gu:{dashboard:'ડેશબોર્ડ',upcoming:'આગામી',mycase:'મારો કેસ',meds:'દવાઓ',reports:'રિપોર્ટ',appts:'એપોઇન્ટમેન્ટ',doctors:'મારા ડૉક્ટર',timeline:'ટાઇમલાઇન',tracking:'હેલ્થ ટ્રેકિંગ',qr:'મારો QR',privacy:'ગોપનીયતા અને પ્રવેશ',billing:'બિલ',notifs:'સૂચનાઓ',settings:'સેટિંગ્સ',emergency:'કટોકટી',logout:'લોગ આઉટ',cases:'કેસ',verify:'દવા ચકાસણી',chats:'સંદેશા',patients:'દર્દીઓ',dappts:'મારી એપોઇન્ટમેન્ટ',earnings:'મારી કમાણી',hdash:'હોસ્પિટલ ડેશબોર્ડ',hpatients:'બધા દર્દીઓ',hdoctors:'બધા ડૉક્ટર',hcases:'બધા કેસ',hmeds:'દવાઓ',happts:'એપોઇન્ટમેન્ટ',hupload:'રિપોર્ટ અપલોડ',greetM:'સુપ્રભાત',greetA:'શુભ બપોર',greetE:'શુભ સાંજ',page:'કેર વોલ્ટ'},
- pa:{dashboard:'ਡੈਸ਼ਬੋਰਡ',upcoming:'ਆਉਣ ਵਾਲੇ',mycase:'ਮੇਰਾ ਕੇਸ',meds:'ਦਵਾਈਆਂ',reports:'ਰਿਪੋਰਟਾਂ',appts:'ਅਪਾਇੰਟਮੈਂਟ',doctors:'ਮੇਰੇ ਡਾਕਟਰ',timeline:'ਟਾਈਮਲਾਈਨ',tracking:'ਸਿਹਤ ਟ੍ਰੈਕਿੰਗ',qr:'ਮੇਰਾ QR',privacy:'ਗੁਪਤਤਾ ਅਤੇ ਪਹੁੰਚ',billing:'ਬਿੱਲ',notifs:'ਸੂਚਨਾਵਾਂ',settings:'ਸੈਟਿੰਗਾਂ',emergency:'ਐਮਰਜੈਂਸੀ',logout:'ਲੌਗ ਆਉਟ',cases:'ਕੇਸ',verify:'ਦਵਾਈ ਪੁਸ਼ਟੀ',chats:'ਸੁਨੇਹੇ',patients:'ਮਰੀਜ਼',dappts:'ਮੇਰੀਆਂ ਅਪਾਇੰਟਮੈਂਟਾਂ',earnings:'ਮੇਰੀ ਕਮਾਈ',hdash:'ਹਸਪਤਾਲ ਡੈਸ਼ਬੋਰਡ',hpatients:'ਸਾਰੇ ਮਰੀਜ਼',hdoctors:'ਸਾਰੇ ਡਾਕਟਰ',hcases:'ਸਾਰੇ ਕੇਸ',hmeds:'ਦਵਾਈਆਂ',happts:'ਅਪਾਇੰਟਮੈਂਟ',hupload:'ਰਿਪੋਰਟ ਅੱਪਲੋਡ',greetM:'ਸ਼ੁਭ ਸਵੇਰ',greetA:'ਸ਼ੁਭ ਦੁਪਹਿਰ',greetE:'ਸ਼ੁਭ ਸ਼ਾਮ',page:'ਕੇਅਰ ਵੌਲਟ'}
+ en:{dashboard:'Dashboard',upcoming:'Upcoming',mycase:'My Case',meds:'Medicines',reports:'Reports',appts:'Appointments',doctors:'My Doctors',timeline:'Timeline',tracking:'Health Tracking',qr:'My QR',privacy:'Privacy & Access',billing:'Billing',notifs:'Notifications',settings:'Settings',emergency:'Emergency',logout:'Logout',cases:'Cases',verify:'Verify Medicines',chats:'Messages',patients:'Patients',dappts:'My Appointments',earnings:'My Earnings',hdash:'Hospital Dashboard',hpatients:'All Patients',hdoctors:'All Doctors',hcases:'All Cases',hmeds:'Medicines',happts:'Appointments',hupload:'Upload Report',greetM:'Good Morning',greetA:'Good Afternoon',greetE:'Good Evening',page:'MHD Hospital'},
+ hi:{dashboard:'डैशबोर्ड',upcoming:'आगामी',mycase:'मेरा केस',meds:'दवाइयाँ',reports:'रिपोर्ट',appts:'अपॉइंटमेंट',doctors:'मेरे डॉक्टर',timeline:'टाइमलाइन',tracking:'स्वास्थ्य ट्रैकिंग',qr:'मेरा QR',privacy:'गोपनीयता व पहुँच',billing:'बिल',notifs:'सूचनाएँ',settings:'सेटिंग्स',emergency:'आपातकाल',logout:'लॉगआउट',cases:'केस',verify:'दवा सत्यापन',chats:'संदेश',patients:'मरीज़',dappts:'मेरे अपॉइंटमेंट',earnings:'मेरी कमाई',hdash:'अस्पताल डैशबोर्ड',hpatients:'सभी मरीज़',hdoctors:'सभी डॉक्टर',hcases:'सभी केस',hmeds:'दवाइयाँ',happts:'अपॉइंटमेंट',hupload:'रिपोर्ट अपलोड',greetM:'सुप्रभात',greetA:'नमस्कार',greetE:'शुभ संध्या',page:'MHD हॉस्पिटल'},
+ ta:{dashboard:'டாஷ்போர்டு',upcoming:'வரவிருக்கும்',mycase:'என் கேஸ்',meds:'மருந்துகள்',reports:'அறிக்கைகள்',appts:'சந்திப்புகள்',doctors:'என் மருத்துவர்கள்',timeline:'காலவரிசை',tracking:'உடல்நல கண்காணிப்பு',qr:'என் QR',privacy:'தனியுரிமை & அணுகல்',billing:'பில்',notifs:'அறிவிப்புகள்',settings:'அமைப்புகள்',emergency:'அவசரம்',logout:'வெளியேறு',cases:'கேஸ்கள்',verify:'மருந்து சரிபார்ப்பு',chats:'செய்திகள்',patients:'நோயாளிகள்',dappts:'என் சந்திப்புகள்',earnings:'என் வருவாய்',hdash:'மருத்துவமனை டாஷ்போர்டு',hpatients:'அனைத்து நோயாளிகள்',hdoctors:'அனைத்து மருத்துவர்கள்',hcases:'அனைத்து கேஸ்கள்',hmeds:'மருந்துகள்',happts:'சந்திப்புகள்',hupload:'அறிக்கை பதிவேற்றம்',greetM:'காலை வணக்கம்',greetA:'மதிய வணக்கம்',greetE:'மாலை வணக்கம்',page:'MHD மருத்துவமனை'},
+ te:{dashboard:'డాష్‌బోర్డ్',upcoming:'రాబోయేవి',mycase:'నా కేసు',meds:'మందులు',reports:'నివేదికలు',appts:'అపాయింట్‌మెంట్లు',doctors:'నా డాక్టర్లు',timeline:'టైమ్‌లైన్',tracking:'ఆరోగ్య ట్రాకింగ్',qr:'నా QR',privacy:'గోప్యత & యాక్సెస్',billing:'బిల్లు',notifs:'నోటిఫికేషన్లు',settings:'సెట్టింగ్‌లు',emergency:'అత్యవసరం',logout:'లాగ్ అవుట్',cases:'కేసులు',verify:'మందు ధృవీకరణ',chats:'సందేశాలు',patients:'రోగులు',dappts:'నా అపాయింట్‌మెంట్లు',earnings:'నా ఆదాయం',hdash:'ఆసుపత్రి డాష్‌బోర్డ్',hpatients:'అన్ని రోగులు',hdoctors:'అన్ని డాక్టర్లు',hcases:'అన్ని కేసులు',hmeds:'మందులు',happts:'అపాయింట్‌మెంట్లు',hupload:'నివేదిక అప్‌లోడ్',greetM:'శుభోదయం',greetA:'శుభ మధ్యాహ్నం',greetE:'శుభ సాయంత్రం',page:'MHD ఆసుపత్రి'},
+ ml:{dashboard:'ഡാഷ്ബോർഡ്',upcoming:'വരാനിരിക്കുന്നവ',mycase:'എന്റെ കേസ്',meds:'മരുന്നുകൾ',reports:'റിപ്പോർട്ടുകൾ',appts:'അപ്പോയിന്റ്മെന്റുകൾ',doctors:'എന്റെ ഡോക്ടർമാർ',timeline:'ടൈംലൈൻ',tracking:'ഹെൽത്ത് ട്രാക്കിംഗ്',qr:'എന്റെ QR',privacy:'സ്വകാര്യത & ആക്സസ്സ്',billing:'ബിൽ',notifs:'അറിയിപ്പുകൾ',settings:'സെറ്റിംഗ്സ്',emergency:'അത്യാഹിതം',logout:'ലോഗ് ഔട്ട്',cases:'കേസുകൾ',verify:'മരുന്ന് സ്ഥിരീകരണം',chats:'സന്ദേശങ്ങൾ',patients:'രോഗികൾ',dappts:'എന്റെ അപ്പോയിന്റ്മെന്റുകൾ',earnings:'എന്റെ വരുമാനം',hdash:'ആശുപത്രി ഡാഷ്ബോർഡ്',hpatients:'എല്ലാ രോഗികൾ',hdoctors:'എല്ലാ ഡോക്ടർമാർ',hcases:'എല്ലാ കേസുകൾ',hmeds:'മരുന്നുകൾ',happts:'അപ്പോയിന്റ്മെന്റുകൾ',hupload:'റിപ്പോർട്ട് അപ്‌ലോഡ്',greetM:'സുപ്രഭാതം',greetA:'ശുഭ ഉച്ച',greetE:'ശുഭ സന്ധ്യ',page:'MHD ആശുപത്രി'},
+ kn:{dashboard:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',upcoming:'ಮುಂಬರುವ',mycase:'ನನ್ನ ಪ್ರಕರಣ',meds:'ಔಷಧಿಗಳು',reports:'ವರದಿಗಳು',appts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',doctors:'ನನ್ನ ವೈದ್ಯರು',timeline:'ಟೈಮ್‌ಲೈನ್',tracking:'ಆರೋಗ್ಯ ಟ್ರ್ಯಾಕಿಂಗ್',qr:'ನನ್ನ QR',privacy:'ಗೋಪ್ಯತೆ ಮತ್ತು ಪ್ರವೇಶ',billing:'ಬಿಲ್',notifs:'ಅಧಿಸೂಚನೆಗಳು',settings:'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',emergency:'ತುರ್ತು',logout:'ಲಾಗ್ ಔಟ್',cases:'ಪ್ರಕರಣಗಳು',verify:'ಔಷಧ ಪರಿಶೀಲನೆ',chats:'ಸಂದೇಶಗಳು',patients:'ರೋಗಿಗಳು',dappts:'ನನ್ನ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',earnings:'ನನ್ನ ಆದಾಯ',hdash:'ಆಸ್ಪತ್ರೆ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',hpatients:'ಎಲ್ಲಾ ರೋಗಿಗಳು',hdoctors:'ಎಲ್ಲಾ ವೈದ್ಯರು',hcases:'ಎಲ್ಲಾ ಪ್ರಕರಣಗಳು',hmeds:'ಔಷಧಿಗಳು',happts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',hupload:'ವರದಿ ಅಪ್‌ಲೋಡ್',greetM:'ಶುಭೋದಯ',greetA:'ಶುಭ ಮಧ್ಯಾಹ್ನ',greetE:'ಶುಭ ಸಂಜೆ',page:'MHD ಆಸ್ಪತ್ರೆ'},
+ bn:{dashboard:'ড্যাশবোর্ড',upcoming:'আসন্ন',mycase:'আমার কেস',meds:'ওষুধ',reports:'রিপোর্ট',appts:'অ্যাপয়েন্টমেন্ট',doctors:'আমার ডাক্তার',timeline:'টাইমলাইন',tracking:'হেলথ ট্র্যাকিং',qr:'আমার QR',privacy:'গোপনীয়তা ও অ্যাক্সেস',billing:'বিল',notifs:'বিজ্ঞপ্তি',settings:'সেটিংস',emergency:'জরুরি',logout:'লগআউট',cases:'কেস',verify:'ওষুধ যাচাই',chats:'বার্তা',patients:'রোগী',dappts:'আমার অ্যাপয়েন্টমেন্ট',earnings:'আমার আয়',hdash:'হাসপাতাল ড্যাশবোর্ড',hpatients:'সব রোগী',hdoctors:'সব ডাক্তার',hcases:'সব কেস',hmeds:'ওষুধ',happts:'অ্যাপয়েন্টমেন্ট',hupload:'রিপোর্ট আপলোড',greetM:'সুপ্রভাত',greetA:'শুভ অপরাহ্ন',greetE:'শুভ সন্ধ্যা',page:'MHD হাসপাতাল'},
+ mr:{dashboard:'डॅशबोर्ड',upcoming:'आगामी',mycase:'माझा केस',meds:'औषधे',reports:'अहवाल',appts:'अपॉइंटमेंट',doctors:'माझे डॉक्टर',timeline:'टाइमलाइन',tracking:'आरोग्य ट्रॅकिंग',qr:'माझा QR',privacy:'गोपनीयता व प्रवेश',billing:'बिल',notifs:'सूचना',settings:'सेटिंग्ज',emergency:'आपत्कालीन',logout:'लॉगआउट',cases:'केस',verify:'औषध पडताळणी',chats:'संदेश',patients:'रुग्ण',dappts:'माझी अपॉइंटमेंट',earnings:'माझी कमाई',hdash:'रुग्णालय डॅशबोर्ड',hpatients:'सर्व रुग्ण',hdoctors:'सर्व डॉक्टर',hcases:'सर्व केस',hmeds:'औषधे',happts:'अपॉइंटमेंट',hupload:'अहवाल अपलोड',greetM:'शुभ प्रभात',greetA:'नमस्कार',greetE:'शुभ संध्याकाळ',page:'MHD रुग्णालय'},
+ gu:{dashboard:'ડેશબોર્ડ',upcoming:'આગામી',mycase:'મારો કેસ',meds:'દવાઓ',reports:'રિપોર્ટ',appts:'એપોઇન્ટમેન્ટ',doctors:'મારા ડૉક્ટર',timeline:'ટાઇમલાઇન',tracking:'હેલ્થ ટ્રેકિંગ',qr:'મારો QR',privacy:'ગોપનીયતા અને પ્રવેશ',billing:'બિલ',notifs:'સૂચનાઓ',settings:'સેટિંગ્સ',emergency:'કટોકટી',logout:'લોગ આઉટ',cases:'કેસ',verify:'દવા ચકાસણી',chats:'સંદેશા',patients:'દર્દીઓ',dappts:'મારી એપોઇન્ટમેન્ટ',earnings:'મારી કમાણી',hdash:'હોસ્પિટલ ડેશબોર્ડ',hpatients:'બધા દર્દીઓ',hdoctors:'બધા ડૉક્ટર',hcases:'બધા કેસ',hmeds:'દવાઓ',happts:'એપોઇન્ટમેન્ટ',hupload:'રિપોર્ટ અપલોડ',greetM:'સુપ્રભાત',greetA:'શુભ બપોર',greetE:'શુભ સાંજ',page:'MHD હોસ્પિટલ'},
+ pa:{dashboard:'ਡੈਸ਼ਬੋਰਡ',upcoming:'ਆਉਣ ਵਾਲੇ',mycase:'ਮੇਰਾ ਕੇਸ',meds:'ਦਵਾਈਆਂ',reports:'ਰਿਪੋਰਟਾਂ',appts:'ਅਪਾਇੰਟਮੈਂਟ',doctors:'ਮੇਰੇ ਡਾਕਟਰ',timeline:'ਟਾਈਮਲਾਈਨ',tracking:'ਸਿਹਤ ਟ੍ਰੈਕਿੰਗ',qr:'ਮੇਰਾ QR',privacy:'ਗੁਪਤਤਾ ਅਤੇ ਪਹੁੰਚ',billing:'ਬਿੱਲ',notifs:'ਸੂਚਨਾਵਾਂ',settings:'ਸੈਟਿੰਗਾਂ',emergency:'ਐਮਰਜੈਂਸੀ',logout:'ਲੌਗ ਆਉਟ',cases:'ਕੇਸ',verify:'ਦਵਾਈ ਪੁਸ਼ਟੀ',chats:'ਸੁਨੇਹੇ',patients:'ਮਰੀਜ਼',dappts:'ਮੇਰੀਆਂ ਅਪਾਇੰਟਮੈਂਟਾਂ',earnings:'ਮੇਰੀ ਕਮਾਈ',hdash:'ਹਸਪਤਾਲ ਡੈਸ਼ਬੋਰਡ',hpatients:'ਸਾਰੇ ਮਰੀਜ਼',hdoctors:'ਸਾਰੇ ਡਾਕਟਰ',hcases:'ਸਾਰੇ ਕੇਸ',hmeds:'ਦਵਾਈਆਂ',happts:'ਅਪਾਇੰਟਮੈਂਟ',hupload:'ਰਿਪੋਰਟ ਅੱਪਲੋਡ',greetM:'ਸ਼ੁਭ ਸਵੇਰ',greetA:'ਸ਼ੁਭ ਦੁਪਹਿਰ',greetE:'ਸ਼ੁਭ ਸ਼ਾਮ',page:'MHD ਹਸਪਤਾਲ'}
 };
-let CUR_LANG = localStorage.getItem('cv_lang') || 'en';
+let CUR_LANG = localStorage.getItem('mhd_lang') || 'en';
 const t = k => (I18N[CUR_LANG] && I18N[CUR_LANG][k]) || I18N.en[k] || k;
 function fillLangSelects() { ['#langSel', '#langSelAuth', '#setLang'].forEach(id => { const el = $(id); if (!el) return; el.innerHTML = LANGS.map(([v, n]) => '<option value="' + v + '">' + n + '</option>').join(''); el.value = CUR_LANG; }); }
 function setLanguage(v) {
-  CUR_LANG = v; localStorage.setItem('cv_lang', v); fillLangSelects();
+  CUR_LANG = v; localStorage.setItem('mhd_lang', v); fillLangSelects();
   if (ME) { db.collection('users').doc(ME.id).update({ language: v }).catch(() => {}); buildNav(); if (CURRENT_PAGE) go(CURRENT_PAGE, { silent: true }); }
   toast('Language updated ✅');
 }
@@ -141,11 +139,11 @@ function errMsg(err) {
 }
 
 /* ---------- THEME / FONT ---------- */
-function applyTheme(v) { document.documentElement.dataset.theme = v; localStorage.setItem('cv_theme', v); ['themeSelAuth', 'themeSel', 'themeSelSet'].forEach(id => { const el = document.getElementById(id); if (el) el.value = v; }); }
+function applyTheme(v) { document.documentElement.dataset.theme = v; localStorage.setItem('mhd_theme', v); ['themeSelAuth', 'themeSel', 'themeSelSet'].forEach(id => { const el = document.getElementById(id); if (el) el.value = v; }); }
 ['themeSelAuth', 'themeSel', 'themeSelSet'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', e => { applyTheme(e.target.value); toast('Theme changed ✅'); }); });
-applyTheme(localStorage.getItem('cv_theme') || 'light');
-function setFont(v) { document.body.classList.remove('font-sm', 'font-lg'); if (v === 'sm') document.body.classList.add('font-sm'); if (v === 'lg') document.body.classList.add('font-lg'); localStorage.setItem('cv_font', v); }
-setFont(localStorage.getItem('cv_font') || 'md');
+applyTheme(localStorage.getItem('mhd_theme') || 'light');
+function setFont(v) { document.body.classList.remove('font-sm', 'font-lg'); if (v === 'sm') document.body.classList.add('font-sm'); if (v === 'lg') document.body.classList.add('font-lg'); localStorage.setItem('mhd_font', v); }
+setFont(localStorage.getItem('mhd_font') || 'md');
 
 /* ---------- AUTH TABS / DEMO ---------- */
  $('#tabLogin').onclick = () => { $('#tabLogin').classList.add('active'); $('#tabReg').classList.remove('active'); $('#formLogin').classList.remove('hidden'); $('#formReg').classList.add('hidden'); };
@@ -159,9 +157,9 @@ setFont(localStorage.getItem('cv_font') || 'md');
 });
 const DEMO_PASS = 'demo123';
 const DEMO = {
-  patient: { email: 'patient.demo@carevault.in', profile: { role: 'patient', name: 'Arjun Kumar', dob: '1980-03-14', gender: 'Male', bloodGroup: 'O+', phone: '9840012345', aadhaar: '432187651122', address: '12, Gandhi Street, Anna Nagar, Chennai 600040', emergencyName: 'Priya Kumar (Wife)', emergencyPhone: '9840055555', heightCm: '170', weightKg: '74', allergies: 'Penicillin (medicine allergy), Dust (other)', conditions: 'Type 2 Diabetes (2021), Hypertension (2022)', surgeries: 'Appendectomy | 2019 | Apollo Hospitals | Dr. Rajan | Appendicitis\nKnee Arthroscopy | 2022 | Kauvery Hospital | Dr. Menon | Meniscus tear', accidents: 'Two-wheeler accident 2016 — right arm fracture, treated at Kauvery Hospital', familyHistory: 'Father — Diabetes; Grandmother — Hypertension', income: '240000', language: 'en', healthId: 'CV-DEMO01' } },
-  doctor: { email: 'doctor.demo@carevault.in', profile: { role: 'doctor', name: 'Arun Kumar', specialization: 'General Surgery', experience: '12', hospital: 'City General Hospital', regNo: 'TMC-45892', phone: '9840077777', onDuty: false } },
-  hospital: { email: 'hospital.demo@carevault.in', profile: { role: 'hospital', name: 'City General Hospital', adminName: 'Admin Demo', phone: '9840088888', address: '1, Hospital Road, Chennai', licenseNo: 'TN-HOSP-1024' } }
+  patient: { email: 'patient.demo@mhdhospital.in', profile: { role: 'patient', name: 'Arjun Kumar', dob: '1980-03-14', gender: 'Male', bloodGroup: 'O+', phone: '9840012345', aadhaar: '432187651122', address: '12, Gandhi Street, Anna Nagar, Chennai 600040', emergencyName: 'Priya Kumar (Wife)', emergencyPhone: '9840055555', heightCm: '170', weightKg: '74', allergies: 'Penicillin (medicine allergy), Dust (other)', conditions: 'Type 2 Diabetes (2021), Hypertension (2022)', surgeries: 'Appendectomy | 2019 | Apollo Hospitals | Dr. Rajan | Appendicitis\nKnee Arthroscopy | 2022 | Kauvery Hospital | Dr. Menon | Meniscus tear', accidents: 'Two-wheeler accident 2016 — right arm fracture, treated at Kauvery Hospital', familyHistory: 'Father — Diabetes; Grandmother — Hypertension', income: '240000', language: 'en', healthId: 'MHD-DEMO01' } },
+  doctor: { email: 'doctor.demo@mhdhospital.in', profile: { role: 'doctor', name: 'Arun Kumar', specialization: 'General Surgery', experience: '12', hospital: 'MHD Hospital', regNo: 'TMC-45892', phone: '9840077777', onDuty: false } },
+  hospital: { email: 'hospital.demo@mhdhospital.in', profile: { role: 'hospital', name: 'MHD Hospital', adminName: 'Admin Demo', phone: '9840088888', address: '1, Hospital Road, Chennai', licenseNo: 'TN-HOSP-1024' } }
 };
 async function quickDemo(role) {
   const d = DEMO[role]; if (!d) return;
@@ -196,7 +194,7 @@ document.addEventListener('click', e => { const dl = e.target.closest('[data-act
   $('#rpSurgeries').value = 'Appendectomy | 2019 | Apollo Hospitals | Dr. Rajan | Appendicitis\nKnee Arthroscopy | 2022 | Kauvery Hospital | Dr. Menon | Meniscus tear';
   $('#rpAccidents').value = 'Two-wheeler accident 2016 — right arm fracture, treated at Kauvery Hospital';
   $('#rpFamily').value = 'Father — Diabetes; Grandmother — Hypertension';
-  $('#rpEmail').value = 'arjun.demo' + Math.floor(Math.random() * 9000) + '@carevault.in'; $('#rpPass').value = 'demo123';
+  $('#rpEmail').value = 'arjun.demo' + Math.floor(Math.random() * 9000) + '@mhdhospital.in'; $('#rpPass').value = 'demo123';
   toast('Demo data filled ✅ — now press "Create Health ID"');
 });
 
@@ -231,10 +229,10 @@ document.addEventListener('click', e => { const dl = e.target.closest('[data-act
     }
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
     profile.email = email; profile.createdAt = Date.now();
-    if (role === 'patient') profile.healthId = 'CV-' + uid6();
+    if (role === 'patient') profile.healthId = 'MHD-' + uid6();
     try { await db.collection('users').doc(cred.user.uid).set(profile); }
     catch (dbErr) { await cred.user.delete().catch(() => {}); return toast('⚠️ Firestore issue: ' + errMsg(dbErr)); }
-    toast('✅ Welcome to Care Vault!' + (profile.healthId ? ' Your Health ID: ' + profile.healthId : ''));
+    toast('✅ Welcome to MHD Hospital!' + (profile.healthId ? ' Your Health ID: ' + profile.healthId : ''));
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
 
@@ -266,7 +264,7 @@ auth.onAuthStateChanged(async user => {
     if (!snap) { toast('Profile missing — please register again.'); await auth.signOut(); return; }
     ME = { id: user.uid, ...snap.data() };
     ROLE = ME.role;
-    if (ME.language && I18N[ME.language]) { CUR_LANG = ME.language; localStorage.setItem('cv_lang', CUR_LANG); fillLangSelects(); }
+    if (ME.language && I18N[ME.language]) { CUR_LANG = ME.language; localStorage.setItem('mhd_lang', CUR_LANG); fillLangSelects(); }
     enterApp();
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
@@ -338,7 +336,7 @@ document.addEventListener('click', e => {
 function enterApp() {
   $('#screen-auth').classList.add('hidden'); $('#app').classList.remove('hidden');
   buildNav();
-  if (ROLE === 'patient') localStorage.setItem('cv_emergency', JSON.stringify(ME));
+  if (ROLE === 'patient') localStorage.setItem('mhd_emergency', JSON.stringify(ME));
   const h = new Date().getHours();
   const greet = h < 12 ? t('greetM') : h < 17 ? t('greetA') : t('greetE');
   if (ROLE === 'patient') { $('#dGreet').textContent = greet + ', ' + ME.name + ' 👋'; $('#dHid').textContent = ME.healthId; bindPatient(); go('p-dash', { silent: true }); }
@@ -351,7 +349,7 @@ function enterApp() {
   bindNotifs();
 }
 
-/* ---------- NOTIFICATIONS (renders instantly on open) ---------- */
+/* ---------- NOTIFICATIONS ---------- */
 function renderNotifList() {
   const nl = $('#notifList'); if (!nl) return;
   nl.innerHTML = STATE.notifs.map(n => '<div class="list-item"><div class="li-main"><b>' + esc(n.title) + '</b><small>' + esc(n.body) + ' • ' + fmtDT(n.createdAt) + '</small></div></div>').join('') || '<p class="muted">No notifications yet — you will be notified here about case reviews, verified medicines, appointments, bills and reports.</p>';
@@ -447,7 +445,7 @@ document.addEventListener('click', async e => {
   try { const dates = m.takenDates || {}; dates[todayStr()] = true; await db.collection('medicines').doc(m.id).update({ takenDates: dates }); toast('✅ Marked as taken'); } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
 
-/* ----- PATIENT DASHBOARD (v11: no Health Overview / no AI scheme) ----- */
+/* ----- PATIENT DASHBOARD ----- */
 function renderPatientDash() {
   if (ROLE !== 'patient' || !ME) return;
   const lastCase = STATE.cases.find(c => c.status === 'reviewed');
@@ -484,18 +482,6 @@ function renderPatientDash() {
   renderTodaySchedule();
 }
 function pbar(label, pct) { return '<div class="pbar"><div class="p-top"><span>' + label + '</span><span>' + pct + '%</span></div><div class="p-track"><div class="p-fill" style="width:' + pct + '%"></div></div></div>'; }
-function schemeCheck() {
-  const out = [];
-  const age = ME.dob ? Math.floor((Date.now() - new Date(ME.dob)) / 31557600000) : null;
-  const cond = (ME.conditions || '').toLowerCase();
-  if (age != null && !isNaN(age) && age >= 60) out.push({ title: 'Senior Citizen Health Scheme', why: 'Age ' + age + ' ≥ 60' });
-  if (ME.income && Number(ME.income) < 250000) out.push({ title: 'Income-based Health Insurance (CM Scheme)', why: 'Income ≤ ₹2.5L' });
-  if (cond.includes('diabet') || cond.includes('hypertens')) out.push({ title: 'NCD Screening & Treatment Coverage', why: 'Chronic condition on record' });
-  if (ME.gender === 'Female' && age != null && age >= 15 && age <= 45) out.push({ title: 'Mother & Child Health Programme', why: 'Eligible age group' });
-  if (ME.aadhaar) out.push({ title: 'ABHA-linked digital health benefits', why: 'Aadhaar linked ✓' });
-  if (!out.length) out.push({ title: 'No auto-detected schemes', why: 'Complete your profile for a better check' });
-  return out;
-}
 
 /* ----- MY CASE + DRAFT AUTOSAVE ----- */
 const DRAFT_FIELDS = ['ncComplaint', 'ncSymptoms', 'ncDuration', 'ncPrevTx', 'ncExisting', 'ncMeds', 'ncAllergy', 'ncSurgery', 'ncFamily', 'ncOther'];
@@ -762,7 +748,7 @@ function renderQR() {
   const nextAppt = STATE.appts.filter(a => a.status === 'upcoming' && a.date >= todayStr()).sort((a, b) => a.date.localeCompare(b.date))[0];
   const q = nextAppt ? queueNumberOf(nextAppt) : null;
   const payload = {
-    app: 'CareVault', healthId: ME.healthId, name: ME.name, age: ageOf(ME.dob), gender: ME.gender,
+    app: 'MHD-Hospital', healthId: ME.healthId, name: ME.name, age: ageOf(ME.dob), gender: ME.gender,
     bloodGroup: ME.bloodGroup || null, allergies: ME.allergies || null, conditions: ME.conditions || null,
     emergencyContact: (ME.emergencyName || '') + ' ' + (ME.emergencyPhone || ''),
     issuedDate: new Date().toLocaleDateString('en-IN'), issuedTime: new Date().toLocaleTimeString('en-IN'),
@@ -1047,7 +1033,7 @@ document.addEventListener('click', async e => {
   try {
     await db.collection('users').doc(ME.id).update(upd);
     Object.assign(ME, upd);
-    if (ROLE === 'patient') localStorage.setItem('cv_emergency', JSON.stringify(ME));
+    if (ROLE === 'patient') localStorage.setItem('mhd_emergency', JSON.stringify(ME));
     buildNav();
     toast('Profile updated ✅' + (upd.photo ? ' (photo saved — visible everywhere)' : ''));
     renderSettings();
@@ -1093,7 +1079,7 @@ function setDuty(on) {
   }
 }
 
-/* ----- DOCTOR DASHBOARD (v11: doctor POV, no AI card) ----- */
+/* ----- DOCTOR DASHBOARD (doctor POV) ----- */
 function renderDocDash() {
   if (ROLE !== 'doctor') return;
   const today = todayStr();
@@ -1342,7 +1328,7 @@ function tableHTML(headers, rows) {
   if (!rows.length) return '<p class="muted">No records yet.</p>';
   return '<div style="overflow-x:auto"><table><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>' + rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</table></div>';
 }
-/* ----- HOSPITAL DASHBOARD (v11: no Verification Overview) ----- */
+/* ----- HOSPITAL DASHBOARD ----- */
 function renderHospital() {
   if (ROLE !== 'hospital') return;
   const today = todayStr();
