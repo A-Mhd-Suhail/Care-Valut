@@ -72,8 +72,7 @@
           <div class="row2">
             <div><label class="label">Full Name *</label>
               <div class="mic-row"><input id="rpName" class="input"><button type="button" class="mic" data-act="mic" data-target="rpName" title="Voice input">🎙️</button></div></div>
-            <div><label class="label">Date of Birth *</label>
-              <div class="dob-row"><select id="rpDobD" class="input"></select><select id="rpDobM" class="input"></select><select id="rpDobY" class="input"></select></div></div>
+            <div><label class="label">Date of Birth *</label><input id="rpDob" type="date" class="input"></div>
           </div>
           <div class="row2">
             <div><label class="label">Gender *</label>
@@ -218,10 +217,9 @@
             <button class="quick-btn" data-nav="p-qr">📱<span>My QR</span></button>
           </div>
         </div>
-        <div class="grid3">
-          <div class="card"><h4>❤️ Health Overview</h4><div id="healthOverview" class="kv"></div><button class="btn ghost sm" data-nav="p-case">View Full Case →</button></div>
-          <div class="card"><h4>🧠 AI Scheme Eligibility <span class="chip blue">AI-assisted</span></h4><div id="schemeList" class="kv muted">Checking…</div></div>
-          <div class="card"><h4>📊 Care Status</h4><div id="careBars"></div></div>
+        <div class="card">
+          <h4>📊 Care Status</h4>
+          <div id="careBars"></div>
         </div>
         <div class="grid3">
           <div class="card"><h4>💊 Active Medicines</h4><ul id="medMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-meds">All Medicines →</button></div>
@@ -239,7 +237,7 @@
         <div class="card"><h4>💊 Active Medicines</h4><div id="upMeds" class="list"></div></div>
       </section>
 
-      <!-- ============ PATIENT: MY CASE (form + history merged) ============ -->
+      <!-- ============ PATIENT: MY CASE ============ -->
       <section id="pg-p-case" class="page hidden">
         <h3>📋 My Case — History &amp; New Case</h3>
         <div id="myCaseStatus"></div>
@@ -295,11 +293,13 @@
         <h3>💊 My Medicines</h3>
         <div class="card">
           <h4>Add a medicine (🔴 pending → doctor verifies → 🟩 Ready to take ✓)</h4>
-          <div class="row4">
-            <input id="mName" class="input" placeholder="Medicine name">
-            <input id="mDose" class="input" placeholder="Dosage e.g. 1 tablet after breakfast">
-            <input id="mStart" type="date" class="input">
-            <input id="mDur" type="number" class="input" placeholder="Days">
+          <div class="row2">
+            <div><label class="label">Medicine name</label><input id="mName" class="input" placeholder="Medicine name"></div>
+            <div><label class="label">Dosage / instructions</label><input id="mDose" class="input" placeholder="e.g. 1 tablet after breakfast"></div>
+          </div>
+          <div class="row2">
+            <div><label class="label">Start date</label><input id="mStart" type="date" class="input"></div>
+            <div><label class="label">Duration (days)</label><input id="mDur" type="number" class="input" placeholder="Days"></div>
           </div>
           <button class="btn primary" data-act="add-med">+ Add Medicine</button>
         </div>
@@ -417,7 +417,7 @@
         </div>
       </section>
 
-      <!-- ============ PATIENT: PRIVACY & ACCESS (merged) ============ -->
+      <!-- ============ PATIENT: PRIVACY & ACCESS ============ -->
       <section id="pg-p-privacy" class="page hidden">
         <h3>🔒 Privacy &amp; Access</h3>
         <div class="card"><h4>🔐 Consent Center</h4><p class="muted">"Who can see my medical record?" — you decide.</p><div id="consentList" class="list"></div></div>
@@ -432,13 +432,14 @@
         <div class="card"><h4>All Bills</h4><div id="pbList" class="list"></div></div>
       </section>
 
-      <!-- ============ NOTIFICATIONS / SETTINGS ============ -->
+      <!-- ============ NOTIFICATIONS ============ -->
       <section id="pg-notifs" class="page hidden">
         <h3>🔔 Notification Center</h3>
         <button class="btn ghost sm" data-act="mark-read">Mark all as read</button>
         <div id="notifList" class="list"></div>
       </section>
 
+      <!-- ============ SETTINGS (all roles) ============ -->
       <section id="pg-settings" class="page hidden">
         <h3>⚙️ Profile &amp; Settings</h3>
         <div class="grid2">
@@ -464,17 +465,14 @@
         </div>
       </section>
 
-      <!-- ============ DOCTOR: DASHBOARD ============ -->
+      <!-- ============ DOCTOR: DASHBOARD (doctor POV) ============ -->
       <section id="pg-d-dash" class="page hidden">
         <div class="card welcome-strip" id="docWelcome"></div>
         <div class="grid5mini" id="ddStats"></div>
-        <div class="grid2" style="margin-bottom:14px">
-          <div class="card" id="dutyCard"></div>
-          <div class="card ai"><h4>🧠 Practice Insights</h4><div id="ddInsights" class="kv"></div></div>
-        </div>
-        <div class="grid2">
-          <div class="card"><h4>🟡 Pending Cases <small class="muted">(click patient name → full details)</small></h4><div id="ddPending" class="list"></div></div>
-          <div class="card"><h4>📅 Today's Appointments — Time &amp; Queue 🎟️</h4><div id="ddToday" class="list"></div></div>
+        <div class="card" id="dutyCard"></div>
+        <div class="grid2" style="margin-top:14px">
+          <div class="card"><h4>🟡 Your Patients Waiting for Review <small class="muted">(click a name → their full portal)</small></h4><div id="ddPending" class="list"></div></div>
+          <div class="card"><h4>📅 Your Schedule Today — Time &amp; Queue 🎟️</h4><div id="ddToday" class="list"></div></div>
         </div>
         <div class="card verify-cta" id="verifyCta"></div>
       </section>
@@ -555,10 +553,7 @@
       <section id="pg-h-dash" class="page hidden">
         <h3>🏥 Hospital Dashboard</h3>
         <div class="grid3" id="hhStats"></div>
-        <div class="grid2">
-          <div class="card"><h4>🧾 Today's Patient Queue</h4><div id="hhQueue"></div></div>
-          <div class="card"><h4>💊 Verification Overview</h4><div id="hhVerify" class="kv"></div></div>
-        </div>
+        <div class="card"><h4>🧾 Today's Patient Queue</h4><div id="hhQueue"></div></div>
       </section>
 
       <section id="pg-h-patients" class="page hidden">
@@ -597,7 +592,7 @@
           </div>
           <div class="row3">
             <select id="hbType" class="input"><option>medicine</option><option>test</option><option>procedure</option><option>room</option><option>other</option></select>
-            <span></span>
+            <input id="hbDate" type="date" class="input">
             <button class="btn primary" data-act="h-add-bill">+ Add Bill</button>
           </div>
         </div>
