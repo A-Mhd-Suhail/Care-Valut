@@ -32,6 +32,12 @@
         <li>🗺️ Doctor live location map + 🚑 Emergency Mode</li>
       </ul>
       <button class="btn danger big" data-act="auth-emergency">🚑 Emergency Access</button>
+      <div class="demo-row">
+        <button class="btn ghost sm" data-act="demo-login" data-role="patient">👤 Patient Demo</button>
+        <button class="btn ghost sm" data-act="demo-login" data-role="doctor">👨‍⚕️ Doctor Demo</button>
+        <button class="btn ghost sm" data-act="demo-login" data-role="hospital">🏥 Hospital Demo</button>
+      </div>
+      <p class="hint">One-click demo accounts — created automatically on first use. Email: role.demo@carevault.in • Password: demo123</p>
     </div>
 
     <div class="auth-card card">
@@ -182,11 +188,53 @@
       <!-- ============ PATIENT: DASHBOARD ============ -->
       <section id="pg-p-dash" class="page">
         <div class="greet">
-          <div><h3 id="dGreet">Good Morning 👋</h3><p class="muted">Care Vault Health ID: <b id="dHid" class="hid-chip">CV-XXXXXX</b></p></div>
+          <div><h3 id="dGreet">Good Morning 👋</h3><p class="muted">Take care and get well soon! • Health ID: <b id="dHid" class="hid-chip">CV-XXXXXX</b></p></div>
           <button class="btn danger" data-act="emergency">🚑 EMERGENCY</button>
         </div>
 
         <div id="reviewBanner" class="banner hidden"></div>
+
+        <div class="grid2">
+          <div class="card recovery-card">
+            <div class="reco-ico">💗</div>
+            <div style="flex:1">
+              <h4>Recovery Progress</h4>
+              <p class="muted sm-txt" id="recoMsg">You are doing great! Keep following your schedule.</p>
+            </div>
+            <div id="recoRing"></div>
+          </div>
+          <div class="card">
+            <h4>🔔 Upcoming Appointment</h4>
+            <div id="nextApptCard" class="kv muted">No upcoming appointments.</div>
+            <button class="btn ghost sm" data-nav="p-appts" style="margin-top:8px">View Details</button>
+          </div>
+        </div>
+
+        <div class="grid4mini" id="miniStats"></div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h4>Today's Schedule</h4>
+            <button class="btn ghost sm" data-nav="p-upcoming">View Full Schedule →</button>
+          </div>
+          <div id="todaySchedule" class="sched"></div>
+        </div>
+
+        <div id="followBanner" class="banner amber hidden"></div>
+
+        <div class="card quick">
+          <h4>Quick Actions</h4>
+          <div class="quick-grid">
+            <button class="quick-btn" data-nav="p-appts">📅<span>Book Appointment</span></button>
+            <button class="quick-btn" data-nav="p-doctors">💬<span>Talk to Doctor</span></button>
+            <button class="quick-btn" data-nav="p-vitals">📈<span>Health Tracking</span></button>
+            <button class="quick-btn" data-nav="p-reports">📁<span>Medical Records</span></button>
+            <button class="quick-btn" data-nav="p-newcase">📝<span>New Case</span></button>
+            <button class="quick-btn" data-nav="p-upcoming">🗓️<span>Upcoming Events</span></button>
+            <button class="quick-btn" data-nav="p-map">🗺️<span>Doctor Map</span></button>
+            <button class="quick-btn" data-nav="p-qr">📱<span>My QR</span></button>
+          </div>
+        </div>
 
         <div class="grid3">
           <div class="card">
@@ -207,25 +255,13 @@
         <div class="grid3">
           <div class="card"><h4>💊 Active Medicines</h4><ul id="medMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-meds">All Medicines →</button></div>
           <div class="card"><h4>🧪 Recent Reports</h4><ul id="repMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-reports">All Reports →</button></div>
-          <div class="card"><h4>📅 Next Appointment</h4><div id="nextApptCard" class="kv muted">No upcoming appointments.</div><button class="btn ghost sm" data-nav="p-appts">Book / View →</button></div>
-        </div>
-
-        <div id="followBanner" class="banner amber hidden"></div>
-
-        <div class="card quick">
-          <h4>Quick Actions</h4>
-          <div class="quick-grid">
-            <button class="quick-btn" data-nav="p-newcase">📝<span>New Case</span></button>
-            <button class="quick-btn" data-nav="p-upcoming">🗓️<span>Upcoming Events</span></button>
-            <button class="quick-btn" data-nav="p-map">🗺️<span>Doctor Map</span></button>
-            <button class="quick-btn" data-nav="p-qr">📱<span>My QR</span></button>
-          </div>
+          <div class="card"><h4>🗓️ Upcoming Events</h4><ul id="evMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-upcoming">View All →</button></div>
         </div>
 
         <div id="searchResults" class="card hidden"><h4>🔍 Search Results</h4><div id="searchResultsBody"></div></div>
       </section>
 
-      <!-- ============ PATIENT: UPCOMING EVENTS (2nd menu) ============ -->
+      <!-- ============ PATIENT: UPCOMING EVENTS ============ -->
       <section id="pg-p-upcoming" class="page hidden">
         <h3>🗓️ Upcoming Events</h3>
         <p class="muted">Everything scheduled ahead of you — appointments, follow-up reminders and active medicines.</p>
@@ -467,15 +503,19 @@
       <section id="pg-d-dash" class="page hidden">
         <div class="greet"><div><h3 id="dGreetDoc">Welcome, Doctor 🩺</h3><p class="muted">"Understand the patient faster — not more data entry."</p></div>
         <button class="btn danger" data-act="emergency">🚑 Emergency Lookup</button></div>
+
         <div class="grid2" style="margin-bottom:14px">
           <div class="card" id="dutyCard"></div>
-          <div class="card" id="verifyCard"></div>
+          <div class="grid3" id="ddStats" style="gap:10px"></div>
         </div>
-        <div class="grid3" id="ddStats"></div>
+
         <div class="grid2">
-          <div class="card"><h4>🟡 Pending Cases (Waiting for Review)</h4><div id="ddPending" class="list"></div></div>
-          <div class="card"><h4>📅 Today's Appointments</h4><div id="ddToday" class="list"></div></div>
+          <div class="card"><h4>🟡 Pending Cases <small class="muted">(click a patient name for full details)</small></h4><div id="ddPending" class="list"></div></div>
+          <div class="card"><h4>📅 Today's Appointments — Time &amp; Queue 🎟️</h4><div id="ddToday" class="list"></div></div>
         </div>
+
+        <!-- Bottom-center: Verify Medicine CTA -->
+        <div class="card verify-cta" id="verifyCta"></div>
       </section>
 
       <!-- ============ DOCTOR: CASES ============ -->
@@ -491,8 +531,15 @@
       <!-- ============ DOCTOR: MEDICINE VERIFICATION CENTER ============ -->
       <section id="pg-d-verify" class="page hidden">
         <h3>💊 Medicine Verification Center</h3>
-        <p class="muted">The core innovation of Care Vault: medicines enter the record as <b>"🟦 Patient reported"</b> and become <b>"🟩 Doctor Verified ✓"</b> only after you confirm them. Verified medicines are what Emergency Mode and future doctors trust.</p>
+        <p class="muted">The core innovation of Care Vault: medicines enter the record as <b>🔴 Verification Pending</b> and become <b>🟩 Verified — Ready to take ✓</b> only after you confirm them. Verified medicines are what Emergency Mode and future doctors trust.</p>
         <div id="dvList" class="list"></div>
+      </section>
+
+      <!-- ============ DOCTOR: MESSAGES (chat) ============ -->
+      <section id="pg-d-chats" class="page hidden">
+        <h3>💬 Messages</h3>
+        <p class="muted">Chat with your patients — secure, real-time and confidential. Click a patient's name to see their full portal details.</p>
+        <div id="dChatList" class="list"></div>
       </section>
 
       <!-- ============ DOCTOR: CASE DETAIL ============ -->
@@ -551,7 +598,7 @@
         </div>
       </section>
 
-      <!-- ============ HOSPITAL: ALL PATIENTS (FULL DETAILS) ============ -->
+      <!-- ============ HOSPITAL: ALL PATIENTS ============ -->
       <section id="pg-h-patients" class="page hidden">
         <h3>👥 All Patients — Full Records</h3>
         <p class="muted">Click "View" to see everything the patient filled — every view is logged in the patient's audit trail.</p>
@@ -559,7 +606,7 @@
         <div id="hPatList" class="list"></div>
       </section>
 
-      <!-- ============ HOSPITAL: ALL DOCTORS (FULL DETAILS) ============ -->
+      <!-- ============ HOSPITAL: ALL DOCTORS ============ -->
       <section id="pg-h-doctors" class="page hidden">
         <h3>👨‍⚕️ All Doctors — Full Records</h3>
         <div id="hDocTable"></div>
@@ -577,7 +624,7 @@
         <div id="hMedTable"></div>
       </section>
 
-      <!-- ============ HOSPITAL: APPOINTMENTS ============ -->
+      <!-- ============ HOSPITAL: ALL APPOINTMENTS ============ -->
       <section id="pg-h-appts" class="page hidden">
         <h3>📅 All Appointments</h3><div id="hApptTable"></div>
       </section>
