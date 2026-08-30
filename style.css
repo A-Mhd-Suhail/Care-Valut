@@ -311,3 +311,44 @@ th{color:var(--muted);font-size:12px;text-transform:uppercase}
   .grid2,.grid3,.row3,.row4,.trend-grid{grid-template-columns:1fr}
   .stat-grid{grid-template-columns:1fr 1fr}
 }
+/* ===== v14: redesigned login + doctor health input + patient overview ===== */
+#screen-auth{min-height:100vh;background:#f2f6fd;display:flex;flex-direction:column}
+.auth-top{position:fixed;top:14px;right:16px;z-index:50;display:flex;gap:8px}
+.auth-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:76px 16px 26px;text-align:center}
+.mhd-shield{width:92px;height:102px;background:#d92b2b;border:4px solid #1e3a6e;clip-path:polygon(50% 100%,0 76%,0 6%,100% 6%,100% 76%);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 14px}
+.mhd-shield .cross{font-size:24px;line-height:1.1;color:#fff;font-weight:800}
+.mhd-shield .mhd{font-size:14px;font-weight:900;color:#fff;letter-spacing:1px}
+.brand-title{font-size:40px;font-weight:900;letter-spacing:1px}
+.brand-title .red{color:#d92b2b}
+.brand-title .navy{color:#1e3a6e}
+.ekg{width:260px;margin:6px auto 8px;display:block}
+.brand-sub2{font-size:14px;font-weight:800;color:#1e3a6e;letter-spacing:3px}
+.gov-badge2{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #1e3a6e;color:#1e3a6e;border-radius:999px;padding:6px 16px;font-weight:800;font-size:12px;margin:12px 0 4px}
+.auth-tag{font-size:15px;color:#43506b;margin:8px 0 18px}
+.auth-card2{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(30,58,110,.08);padding:26px;width:min(430px,100%);text-align:left}
+.auth-card2 h3{font-size:22px;color:#1e3a6e;margin-bottom:2px}
+.auth-card2 .sub{font-size:13px;color:var(--muted);margin-bottom:12px}
+.auth-card2 .label{margin-top:8px}
+.auth-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin:2px 0 8px}
+.auth-row label{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:pointer}
+.auth-row a{color:var(--primary);text-decoration:none;font-weight:700;cursor:pointer}
+.auth-alt{text-align:center;font-size:13px;margin-top:12px;color:var(--muted)}
+.auth-alt a{color:var(--primary);font-weight:700;cursor:pointer}
+.auth-foot{padding:16px;text-align:center;font-size:12px;color:var(--muted)}
+.auth-foot .links{margin-top:6px}
+.auth-foot a{color:var(--primary);text-decoration:none;margin:0 8px;cursor:pointer;font-weight:600}
+[data-theme="dark"] #screen-auth{background:#0a0e16}
+[data-theme="dark"] .brand-title .navy{color:#bcd0f5}
+[data-theme="dark"] .brand-sub2,[data-theme="dark"] .gov-badge2{color:#bcd0f5;border-color:#bcd0f5}
+[data-theme="dark"] .auth-tag{color:var(--muted)}
+/* patient overview */
+.overview-card .ov-rows{margin-top:8px}
+.ov-rows{display:flex;flex-direction:column}
+.ov-row{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--border)}
+.ov-row:last-child{border-bottom:none}
+.ov-ico{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--blue-bg);flex-shrink:0}
+.ov-row .ov-name{flex:1;font-weight:700;font-size:14.5px}
+.ov-row .ov-val{font-size:15px;font-weight:800;text-align:right}
+.ov-row .ov-val small{font-weight:600;color:var(--muted);margin-left:4px}
+.muted-border{border-left:4px solid var(--amber)}
+@media(max-width:960px){.brand-title{font-size:32px}}
