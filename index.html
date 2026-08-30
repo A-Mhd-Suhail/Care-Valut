@@ -30,7 +30,6 @@
     <div class="auth-tag">One Patient. One Medical Journey.</div>
 
     <div class="auth-card2">
-      <!-- LOGIN VIEW -->
       <div id="authLoginView">
         <h3>Login</h3>
         <p class="sub">Welcome back! Please login to continue.</p>
@@ -47,14 +46,13 @@
           <input id="loginPass" class="input" type="password" placeholder="••••••••" required>
           <div class="auth-row">
             <label><input type="checkbox" id="rememberMe" checked> Remember me</label>
-            <a id="forgotLink">Forgot password?</a>
+            <a data-act="forgot-pass">Forgot password?</a>
           </div>
           <button class="btn primary big" type="submit" style="margin-top:4px">Login</button>
         </form>
-        <p class="auth-alt">Don't have an account? <a id="linkRegister">Register</a></p>
+        <p class="auth-alt">Don't have an account? <a data-act="show-register">Register</a></p>
       </div>
 
-      <!-- REGISTER VIEW -->
       <div id="authRegisterView" class="hidden">
         <h3>Register</h3>
         <p class="sub">Create your MHD account to continue.</p>
@@ -142,7 +140,7 @@
             <button class="btn primary big" type="submit">Register Hospital</button>
           </div>
         </form>
-        <p class="auth-alt">Already have an account? <a id="linkLogin">Login</a></p>
+        <p class="auth-alt">Already have an account? <a data-act="show-login">Login</a></p>
       </div>
     </div>
 
@@ -300,7 +298,7 @@
         </div>
       </section>
 
-      <!-- ============ PATIENT: MEDICINES ============ -->
+      <!-- ============ PATIENT: MEDICINES (doctor-managed) ============ -->
       <section id="pg-p-meds" class="page hidden">
         <h3>💊 My Medicines</h3>
         <div class="card muted-border">
@@ -395,7 +393,7 @@
         <div id="tlList" class="timeline"></div>
       </section>
 
-      <!-- ============ PATIENT: HEALTH OVERVIEW (doctor-entered, view-only) ============ -->
+      <!-- ============ PATIENT: HEALTH OVERVIEW (doctor-entered) ============ -->
       <section id="pg-p-vitals" class="page hidden">
         <div class="greet">
           <div><h3>🩺 My Health Overview</h3><p class="muted">Entered by your doctor — view only</p></div>
@@ -486,7 +484,7 @@
         <div class="card verify-cta" id="verifyCta"></div>
       </section>
 
-      <!-- ============ DOCTOR: HEALTH INPUT (new) ============ -->
+      <!-- ============ DOCTOR: HEALTH INPUT ============ -->
       <section id="pg-d-vitals" class="page hidden">
         <h3>🩺 Patient Health Input</h3>
         <p class="muted">Only doctors can enter health data. What you save here appears instantly on the patient's portal.</p>
@@ -550,7 +548,7 @@
         <button class="btn ghost sm" data-nav="d-cases">← Back</button>
         <div id="cdHead"></div>
         <div class="card ai"><h4>🧠 AI Case Snapshot <span class="chip amber">auto-generated from records</span></h4><div id="cdSummary" class="kv"></div></div>
-        <div class="card"><h4>📎 Patient Documents — digitized by the patient <small class="muted">(tap to view full document)</small></h4><div id="cdDocs" class="doc-thumbs"></div></div>
+        <div class="card"><h4>📎 Patient Documents <small class="muted">(tap to view full document)</small></h4><div id="cdDocs" class="doc-thumbs"></div></div>
         <div class="grid2">
           <div class="card blue-edge"><h4>🟦 Patient-Reported</h4><div id="cdBlue" class="kv"></div></div>
           <div class="card green-edge">
@@ -564,7 +562,7 @@
             <button class="btn ghost sm" data-act="add-presc-row">+ Add Medicine</button>
             <label class="label">Recommended Tests</label>
             <textarea id="cdTests" class="input" rows="2" placeholder="e.g. CBC, HbA1c"></textarea>
-            <label class="label">Consultation Fee (₹) — creates a real-time bill for the patient</label>
+            <label class="label">Consultation Fee (₹)</label>
             <input id="cdFee" type="number" class="input sm-input" placeholder="e.g. 300">
             <label class="label">Follow-up after (days)</label>
             <input id="cdFollow" type="number" class="input sm-input" placeholder="e.g. 14">
