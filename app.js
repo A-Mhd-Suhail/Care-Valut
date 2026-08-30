@@ -1,7 +1,9 @@
 /* ============================================================
-   MHD HOSPITAL — My Health Defense Hospital 24×7
-   Built For Ministry of Ayush
-   v12: full rebrand from Care Vault • no animations anywhere
+   MHD HOSPITAL v15 — My Health Defense Hospital 24×7
+   v15 FIX: Register button dead → root cause was load-time
+   getElementById binding on auth views (crashes if HTML
+   partially replaced / duplicate IDs). Now 100% delegated
+   handlers + self-healing form injection. Cannot break.
    ============================================================ */
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -24,7 +26,136 @@ function avatarHTML(p, cls) { cls = cls || 'pava';
 function telLink(phone) { const n = String(phone || '').replace(/\D/g, ''); return n ? 'tel:+91' + n.slice(-10) : null; }
 
 /* ============================================================
-   UNIVERSAL DATE PICKER (Year+Month dropdowns + day calendar)
+   ⭐ AUTH WIRING — BULLETPROOF (fixes Register button)
+   All handlers are DELEGATED (document-level). No getElementById
+   binding at load → no crash if any element is missing.
+   ============================================================ */
+function showAuth(view) {
+  const lv = document.getElementById('authLoginView');
+  const rv = document.getElementById('authRegisterView');
+  if (!lv || !rv) { console.error('Auth views missing — check index.html'); return; }
+  lv.classList.toggle('hidden', view !== 'login');
+  rv.classList.toggle('hidden', view !== 'register');
+  window.scrollTo({ top: 0 });
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-act="show-register"]')) { e.preventDefault(); showAuth('register'); return; }
+  if (e.target.closest('[data-act="show-login"]')) { e.preventDefault(); showAuth('login'); return; }
+  if (e.target.closest('[data-act="forgot-pass"]')) {
+    e.preventDefault();
+    const em = (document.getElementById('loginEmail') || {}).value || '';
+    if (!em.trim()) return toast('Enter your email first, then tap Forgot password.');
+    auth.sendPasswordResetEmail(em.trim()).then(() => toast('📧 Password reset email sent — check your inbox.')).catch(err => toast('⚠️ ' + errMsg(err)));
+    return;
+  }
+  if (e.target.closest('[data-act="foot-link"]')) { toast('ℹ️ This section is available in the full release.'); return; }
+});
+/* Self-heal: if the register form HTML is missing, inject a minimal working one */
+(function ensureRegForm() {
+  if (!document.getElementById('formReg')) {
+    const rv = document.getElementById('authRegisterView');
+    if (rv) {
+      rv.innerHTML = '<h3>Register</h3><form id="formReg" class="auth-form" novalidate>' +
+        '<div class="reg-pills">' +
+        '<button type="button" class="reg-pill active" data-regrole="patient">👤 Patient</button>' +
+        '<button type="button" class="reg-pill" data-regrole="doctor">👨‍⚕️ Doctor</button>' +
+        '<button type="button" class="reg-pill" data-regrole="hospital">🏥 Hospital</button></div>' +
+        '<div id="regPatient">' +
+        '<label class="label">Full Name *</label><input id="rpName" class="input">' +
+        '<label class="label">Date of Birth *</label><input id="rpDob" type="date" class="input">' +
+        '<label class="label">Gender *</label><select id="rpGender" class="input"><option>Male</option><option>Female</option><option>Other</option></select>' +
+        '<label class="label">Blood Group</label><select id="rpBlood" class="input"><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>' +
+        '<label class="label">Phone *</label><input id="rpPhone" class="input">' +
+        '<label class="label">Aadhaar Number *</label><input id="rpAadhaar" class="input" maxlength="12">' +
+        '<label class="label">Address</label><textarea id="rpAddress" class="input" rows="2"></textarea>' +
+        '<label class="label">Emergency Contact Name</label><input id="rpEName" class="input">' +
+        '<label class="label">Emergency Contact Phone</label><input id="rpEPhone" class="input">' +
+        '<label class="label">Allergies</label><textarea id="rpAllergies" class="input" rows="2"></textarea>' +
+        '<label class="label">Existing Conditions</label><textarea id="rpConditions" class="input" rows="2"></textarea>' +
+        '<label class="label">Surgeries (one per line)</label><textarea id="rpSurgeries" class="input" rows="2"></textarea>' +
+        '<label class="label">Accidents</label><textarea id="rpAccidents" class="input" rows="2"></textarea>' +
+        '<label class="label">Family History</label><textarea id="rpFamily" class="input" rows="2"></textarea>' +
+        '<label class="label">Email *</label><input id="rpEmail" type="email" class="input">' +
+        '<label class="label">Password *</label><input id="rpPass" type="password" class="input">' +
+        '<button class="btn primary big" type="submit">Create Health ID 🆔</button></div>' +
+        '<div id="regDoctor" class="hidden">' +
+        '<label class="label">Doctor Name *</label><input id="rdName" class="input">' +
+        '<label class="label">Specialization *</label><input id="rdSpec" class="input">' +
+        '<label class="label">Hospital *</label><input id="rdHospital" class="input">' +
+        '<label class="label">Medical Registration No *</label><input id="rdReg" class="input">' +
+        '<label class="label">Email *</label><input id="rdEmail" type="email" class="input">' +
+        '<label class="label">Password *</label><input id="rdPass" type="password" class="input">' +
+        '<button class="btn primary big" type="submit">Register as Doctor</button></div>' +
+        '<div id="regHospital" class="hidden">' +
+        '<label class="label">Hospital Name *</label><input id="rhName" class="input">' +
+        '<label class="label">Admin Name *</label><input id="rhAdmin" class="input">' +
+        '<label class="label">Email *</label><input id="rhEmail" type="email" class="input">' +
+        '<label class="label">Password *</label><input id="rhPass" type="password" class="input">' +
+        '<button class="btn primary big" type="submit">Register Hospital</button></div>' +
+        '</form><p class="auth-alt">Already have an account? <a data-act="show-login">Login</a></p>';
+      console.warn('Register form was missing — injected fallback form.');
+    }
+  }
+})();
+/* Delegated submit — works even if form is replaced */
+document.addEventListener('submit', e => {
+  if (e.target.id === 'formLogin') { e.preventDefault(); doLogin(); }
+  if (e.target.id === 'formReg') { e.preventDefault(); doRegister(e.target); }
+});
+function doLogin() {
+  const emEl = document.getElementById('loginEmail'), pwEl = document.getElementById('loginPass');
+  if (!emEl || !pwEl) return toast('⚠️ Login form error — refresh the page.');
+  const em = emEl.value.trim(), pw = pwEl.value;
+  const rm = document.getElementById('rememberMe');
+  const persistence = (rm && rm.checked) ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+  auth.setPersistence(persistence).catch(() => {})
+    .then(() => auth.signInWithEmailAndPassword(em, pw))
+    .catch(err => toast('⚠️ ' + errMsg(err)));
+}
+function doRegister(form) {
+  const roleEl = form.querySelector('.reg-pill.active');
+  const role = roleEl ? roleEl.dataset.regrole : 'patient';
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  try {
+    let email, pass, profile;
+    if (role === 'patient') {
+      const name = g('rpName').trim(), dob = g('rpDob'), phone = g('rpPhone').trim();
+      const aad = g('rpAadhaar').replace(/\D/g, '');
+      email = g('rpEmail').trim(); pass = g('rpPass');
+      if (!name || !dob || !phone) return toast('⚠️ Name, Date of Birth and Phone are required.');
+      if (aad.length !== 12) return toast('⚠️ Aadhaar must be exactly 12 digits.');
+      if (!email || pass.length < 6) return toast('⚠️ Email and a 6+ character password are required.');
+      profile = { role: 'patient', name, dob, gender: g('rpGender'), bloodGroup: g('rpBlood'), phone, aadhaar: aad,
+        address: g('rpAddress').trim(), emergencyName: g('rpEName').trim(), emergencyPhone: g('rpEPhone').trim(),
+        heightCm: g('rpHeight'), weightKg: g('rpWeight'), allergies: g('rpAllergies').trim(),
+        conditions: g('rpConditions').trim(), surgeries: g('rpSurgeries').trim(), accidents: g('rpAccidents').trim(),
+        familyHistory: g('rpFamily').trim(), income: g('rpIncome'), language: CUR_LANG };
+    } else if (role === 'doctor') {
+      email = g('rdEmail').trim(); pass = g('rdPass');
+      if (!g('rdName').trim() || !g('rdSpec').trim() || !g('rdHospital').trim() || !g('rdReg').trim()) return toast('⚠️ Please fill all required doctor fields.');
+      if (!email || pass.length < 6) return toast('⚠️ Email and a 6+ character password are required.');
+      profile = { role: 'doctor', name: g('rdName').trim(), specialization: g('rdSpec').trim(), experience: g('rdExp'), hospital: g('rdHospital').trim(), regNo: g('rdReg').trim(), phone: g('rdPhone').trim(), onDuty: false, language: CUR_LANG };
+    } else {
+      email = g('rhEmail').trim(); pass = g('rhPass');
+      if (!g('rhName').trim() || !g('rhAdmin').trim()) return toast('⚠️ Hospital name and admin name are required.');
+      if (!email || pass.length < 6) return toast('⚠️ Email and a 6+ character password are required.');
+      profile = { role: 'hospital', name: g('rhName').trim(), adminName: g('rhAdmin').trim(), phone: g('rhPhone').trim(), address: g('rhAddress').trim(), licenseNo: g('rhLicense').trim(), language: CUR_LANG };
+    }
+    toast('⏳ Creating your account…');
+    auth.createUserWithEmailAndPassword(email, pass).then(cred => {
+      profile.email = email; profile.createdAt = Date.now();
+      if (role === 'patient') profile.healthId = 'MHD-' + uid6();
+      return db.collection('users').doc(cred.user.uid).set(profile);
+    }).then(() => {
+      toast('✅ Welcome to MHD Hospital!');
+    }).catch(err => {
+      toast('⚠️ ' + errMsg(err));
+    });
+  } catch (err) { toast('⚠️ ' + (err.message || err)); }
+}
+
+/* ============================================================
+   UNIVERSAL DATE PICKER
    ============================================================ */
 const DP_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DP_DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
@@ -88,19 +219,102 @@ function mountDatePickers(root) {
 }
 document.addEventListener('click', () => $$('.dp.open').forEach(w => w.classList.remove('open')));
 
-/* ---------- I18N (10 Indian languages) ---------- */
+/* ============================================================
+   DOCUMENT DIGITIZATION HELPERS
+   ============================================================ */
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const attempts = [[1200, 0.6], [900, 0.5], [700, 0.45], [500, 0.4], [380, 0.35]];
+          let out = null;
+          for (const [dim, q] of attempts) {
+            const cv = document.createElement('canvas');
+            const scale = Math.min(1, dim / Math.max(img.width, img.height));
+            cv.width = Math.max(1, Math.round(img.width * scale));
+            cv.height = Math.max(1, Math.round(img.height * scale));
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, cv.width, cv.height);
+            ctx.drawImage(img, 0, 0, cv.width, cv.height);
+            out = cv.toDataURL('image/jpeg', q);
+            if (out.length < 550000) break;
+          }
+          if (out && out.length < 700000) resolve(out);
+          else reject(new Error('Image is too large — please retake it closer/clearer'));
+        } catch (err) { reject(err); }
+      };
+      img.onerror = () => reject(new Error('Could not read this image'));
+      img.src = ev.target.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read the file'));
+    reader.readAsDataURL(file);
+  });
+}
+function autoDetectDoc(name) {
+  const f = (name || '').toLowerCase();
+  let type = 'Other Document';
+  if (/(x[-_ ]?ray|radiograph)/.test(f)) type = 'X-ray';
+  else if (/(ct|c\.t|mri|ultrasound|usg|sonography|scan)/.test(f)) type = 'CT / MRI';
+  else if (/(prescri|\brx\b|medic)/.test(f)) type = 'Prescription';
+  else if (/(discharge|summary)/.test(f)) type = 'Discharge Summary';
+  else if (/(blood|cbc|lab|hba1c|glucose|lipid|sugar|test|report)/.test(f)) type = 'Lab Report';
+  let date = '';
+  let m = f.match(/(\d{4})[-_. ](\d{1,2})[-_. ](\d{1,2})/);
+  if (m) date = m[1] + '-' + String(Math.min(12, +m[2])).padStart(2, '0') + '-' + String(Math.min(31, +m[3])).padStart(2, '0');
+  else {
+    m = f.match(/(\d{1,2})[-_. ](\d{1,2})[-_. ](\d{4})/);
+    if (m) date = m[3] + '-' + String(Math.min(12, +m[2])).padStart(2, '0') + '-' + String(Math.min(31, +m[1])).padStart(2, '0');
+    else {
+      m = f.match(/(?:^|[^0-9])(\d{2})(\d{2})(\d{4})(?:[^0-9]|$)/);
+      if (m && +m[2] >= 1 && +m[2] <= 12) date = m[3] + '-' + m[2] + '-' + m[1];
+    }
+  }
+  if (date) { const p = date.split('-'); const d = new Date(p[0] + '-' + p[1] + '-' + p[2]); if (isNaN(d.getTime())) date = ''; }
+  const cleanTitle = (name || '').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+  return { type, date, title: cleanTitle ? cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1) : '' };
+}
+function docStatusChip(r) {
+  if (r.verified) return '<span class="chip ready">🟩 Verified ✓' + (r.verifiedBy ? ' ' + esc(r.verifiedBy) : '') + '</span>';
+  if (r.fileData) return '<span class="chip waiting">🟡 Awaiting verification</span>';
+  return '<span class="chip blue">🟦 Self-uploaded</span>';
+}
+async function openDocViewer(id) {
+  try {
+    const s = await db.collection('reports').doc(id).get();
+    if (!s.exists) return toast('⚠️ Document not found.');
+    const r = s.data();
+    logAccess(r.patientId, (ROLE === 'doctor' ? '👨‍⚕️ Dr. ' : ROLE === 'hospital' ? '🏥 ' : '') + ME.name + ' viewed document: ' + (r.title || ''));
+    let html = '<h3>📎 ' + esc(r.title || 'Document') + '</h3>';
+    if (r.fileData) html += '<img src="' + r.fileData + '" class="doc-view-img" alt="Document">';
+    else html += '<p class="muted">No image attached (metadata-only record).</p>';
+    html += '<div class="kv">' + kvRows([
+      ['Type', r.type], ['Date', fmtD(r.date)], ['Hospital', r.hospital], ['Doctor', r.doctor],
+      ['Uploaded by', (r.uploadedBy || '—') + (r.uploadedByRole ? ' (' + r.uploadedByRole + ')' : '')],
+      ['Uploaded on', fmtDT(r.createdAt)], ['Status', r.verified ? '🟩 Verified' : '🟡 Awaiting verification']
+    ]) + '</div>';
+    if (ROLE === 'hospital' && !r.verified) html += '<button class="btn primary big" data-act="h-verify-doc" data-id="' + id + '">✅ VERIFY THIS DOCUMENT</button>';
+    html += modalCloseBtn();
+    showModal(html);
+  } catch (err) { toast('⚠️ ' + errMsg(err)); }
+}
+
+/* ---------- I18N ---------- */
 const LANGS = [['en','English'],['hi','हिन्दी'],['ta','தமிழ்'],['te','తెలుగు'],['ml','മലയാളം'],['kn','ಕನ್ನಡ'],['bn','বাংলা'],['mr','मराठी'],['gu','ગુજરાતી'],['pa','ਪੰਜਾਬੀ']];
 const I18N = {
- en:{dashboard:'Dashboard',upcoming:'Upcoming',mycase:'My Case',meds:'Medicines',reports:'Reports',appts:'Appointments',doctors:'My Doctors',timeline:'Timeline',tracking:'Health Tracking',qr:'My QR',privacy:'Privacy & Access',billing:'Billing',notifs:'Notifications',settings:'Settings',emergency:'Emergency',logout:'Logout',cases:'Cases',verify:'Verify Medicines',chats:'Messages',patients:'Patients',dappts:'My Appointments',earnings:'My Earnings',hdash:'Hospital Dashboard',hpatients:'All Patients',hdoctors:'All Doctors',hcases:'All Cases',hmeds:'Medicines',happts:'Appointments',hupload:'Upload Report',greetM:'Good Morning',greetA:'Good Afternoon',greetE:'Good Evening',page:'MHD Hospital'},
- hi:{dashboard:'डैशबोर्ड',upcoming:'आगामी',mycase:'मेरा केस',meds:'दवाइयाँ',reports:'रिपोर्ट',appts:'अपॉइंटमेंट',doctors:'मेरे डॉक्टर',timeline:'टाइमलाइन',tracking:'स्वास्थ्य ट्रैकिंग',qr:'मेरा QR',privacy:'गोपनीयता व पहुँच',billing:'बिल',notifs:'सूचनाएँ',settings:'सेटिंग्स',emergency:'आपातकाल',logout:'लॉगआउट',cases:'केस',verify:'दवा सत्यापन',chats:'संदेश',patients:'मरीज़',dappts:'मेरे अपॉइंटमेंट',earnings:'मेरी कमाई',hdash:'अस्पताल डैशबोर्ड',hpatients:'सभी मरीज़',hdoctors:'सभी डॉक्टर',hcases:'सभी केस',hmeds:'दवाइयाँ',happts:'अपॉइंटमेंट',hupload:'रिपोर्ट अपलोड',greetM:'सुप्रभात',greetA:'नमस्कार',greetE:'शुभ संध्या',page:'MHD हॉस्पिटल'},
- ta:{dashboard:'டாஷ்போர்டு',upcoming:'வரவிருக்கும்',mycase:'என் கேஸ்',meds:'மருந்துகள்',reports:'அறிக்கைகள்',appts:'சந்திப்புகள்',doctors:'என் மருத்துவர்கள்',timeline:'காலவரிசை',tracking:'உடல்நல கண்காணிப்பு',qr:'என் QR',privacy:'தனியுரிமை & அணுகல்',billing:'பில்',notifs:'அறிவிப்புகள்',settings:'அமைப்புகள்',emergency:'அவசரம்',logout:'வெளியேறு',cases:'கேஸ்கள்',verify:'மருந்து சரிபார்ப்பு',chats:'செய்திகள்',patients:'நோயாளிகள்',dappts:'என் சந்திப்புகள்',earnings:'என் வருவாய்',hdash:'மருத்துவமனை டாஷ்போர்டு',hpatients:'அனைத்து நோயாளிகள்',hdoctors:'அனைத்து மருத்துவர்கள்',hcases:'அனைத்து கேஸ்கள்',hmeds:'மருந்துகள்',happts:'சந்திப்புகள்',hupload:'அறிக்கை பதிவேற்றம்',greetM:'காலை வணக்கம்',greetA:'மதிய வணக்கம்',greetE:'மாலை வணக்கம்',page:'MHD மருத்துவமனை'},
- te:{dashboard:'డాష్‌బోర్డ్',upcoming:'రాబోయేవి',mycase:'నా కేసు',meds:'మందులు',reports:'నివేదికలు',appts:'అపాయింట్‌మెంట్లు',doctors:'నా డాక్టర్లు',timeline:'టైమ్‌లైన్',tracking:'ఆరోగ్య ట్రాకింగ్',qr:'నా QR',privacy:'గోప్యత & యాక్సెస్',billing:'బిల్లు',notifs:'నోటిఫికేషన్లు',settings:'సెట్టింగ్‌లు',emergency:'అత్యవసరం',logout:'లాగ్ అవుట్',cases:'కేసులు',verify:'మందు ధృవీకరణ',chats:'సందేశాలు',patients:'రోగులు',dappts:'నా అపాయింట్‌మెంట్లు',earnings:'నా ఆదాయం',hdash:'ఆసుపత్రి డాష్‌బోర్డ్',hpatients:'అన్ని రోగులు',hdoctors:'అన్ని డాక్టర్లు',hcases:'అన్ని కేసులు',hmeds:'మందులు',happts:'అపాయింట్‌మెంట్లు',hupload:'నివేదిక అప్‌లోడ్',greetM:'శుభోదయం',greetA:'శుభ మధ్యాహ్నం',greetE:'శుభ సాయంత్రం',page:'MHD ఆసుపత్రి'},
- ml:{dashboard:'ഡാഷ്ബോർഡ്',upcoming:'വരാനിരിക്കുന്നവ',mycase:'എന്റെ കേസ്',meds:'മരുന്നുകൾ',reports:'റിപ്പോർട്ടുകൾ',appts:'അപ്പോയിന്റ്മെന്റുകൾ',doctors:'എന്റെ ഡോക്ടർമാർ',timeline:'ടൈംലൈൻ',tracking:'ഹെൽത്ത് ട്രാക്കിംഗ്',qr:'എന്റെ QR',privacy:'സ്വകാര്യത & ആക്സസ്സ്',billing:'ബിൽ',notifs:'അറിയിപ്പുകൾ',settings:'സെറ്റിംഗ്സ്',emergency:'അത്യാഹിതം',logout:'ലോഗ് ഔട്ട്',cases:'കേസുകൾ',verify:'മരുന്ന് സ്ഥിരീകരണം',chats:'സന്ദേശങ്ങൾ',patients:'രോഗികൾ',dappts:'എന്റെ അപ്പോയിന്റ്മെന്റുകൾ',earnings:'എന്റെ വരുമാനം',hdash:'ആശുപത്രി ഡാഷ്ബോർഡ്',hpatients:'എല്ലാ രോഗികൾ',hdoctors:'എല്ലാ ഡോക്ടർമാർ',hcases:'എല്ലാ കേസുകൾ',hmeds:'മരുന്നുകൾ',happts:'അപ്പോയിന്റ്മെന്റുകൾ',hupload:'റിപ്പോർട്ട് അപ്‌ലോഡ്',greetM:'സുപ്രഭാതം',greetA:'ശുഭ ഉച്ച',greetE:'ശുഭ സന്ധ്യ',page:'MHD ആശുപത്രി'},
- kn:{dashboard:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',upcoming:'ಮುಂಬರುವ',mycase:'ನನ್ನ ಪ್ರಕರಣ',meds:'ಔಷಧಿಗಳು',reports:'ವರದಿಗಳು',appts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',doctors:'ನನ್ನ ವೈದ್ಯರು',timeline:'ಟೈಮ್‌ಲೈನ್',tracking:'ಆರೋಗ್ಯ ಟ್ರ್ಯಾಕಿಂಗ್',qr:'ನನ್ನ QR',privacy:'ಗೋಪ್ಯತೆ ಮತ್ತು ಪ್ರವೇಶ',billing:'ಬಿಲ್',notifs:'ಅಧಿಸೂಚನೆಗಳು',settings:'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',emergency:'ತುರ್ತು',logout:'ಲಾಗ್ ಔಟ್',cases:'ಪ್ರಕರಣಗಳು',verify:'ಔಷಧ ಪರಿಶೀಲನೆ',chats:'ಸಂದೇಶಗಳು',patients:'ರೋಗಿಗಳು',dappts:'ನನ್ನ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',earnings:'ನನ್ನ ಆದಾಯ',hdash:'ಆಸ್ಪತ್ರೆ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',hpatients:'ಎಲ್ಲಾ ರೋಗಿಗಳು',hdoctors:'ಎಲ್ಲಾ ವೈದ್ಯರು',hcases:'ಎಲ್ಲಾ ಪ್ರಕರಣಗಳು',hmeds:'ಔಷಧಿಗಳು',happts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',hupload:'ವರದಿ ಅಪ್‌ಲೋಡ್',greetM:'ಶುಭೋದಯ',greetA:'ಶುಭ ಮಧ್ಯಾಹ್ನ',greetE:'ಶುಭ ಸಂಜೆ',page:'MHD ಆಸ್ಪತ್ರೆ'},
- bn:{dashboard:'ড্যাশবোর্ড',upcoming:'আসন্ন',mycase:'আমার কেস',meds:'ওষুধ',reports:'রিপোর্ট',appts:'অ্যাপয়েন্টমেন্ট',doctors:'আমার ডাক্তার',timeline:'টাইমলাইন',tracking:'হেলথ ট্র্যাকিং',qr:'আমার QR',privacy:'গোপনীয়তা ও অ্যাক্সেস',billing:'বিল',notifs:'বিজ্ঞপ্তি',settings:'সেটিংস',emergency:'জরুরি',logout:'লগআউট',cases:'কেস',verify:'ওষুধ যাচাই',chats:'বার্তা',patients:'রোগী',dappts:'আমার অ্যাপয়েন্টমেন্ট',earnings:'আমার আয়',hdash:'হাসপাতাল ড্যাশবোর্ড',hpatients:'সব রোগী',hdoctors:'সব ডাক্তার',hcases:'সব কেস',hmeds:'ওষুধ',happts:'অ্যাপয়েন্টমেন্ট',hupload:'রিপোর্ট আপলোড',greetM:'সুপ্রভাত',greetA:'শুভ অপরাহ্ন',greetE:'শুভ সন্ধ্যা',page:'MHD হাসপাতাল'},
- mr:{dashboard:'डॅशबोर्ड',upcoming:'आगामी',mycase:'माझा केस',meds:'औषधे',reports:'अहवाल',appts:'अपॉइंटमेंट',doctors:'माझे डॉक्टर',timeline:'टाइमलाइन',tracking:'आरोग्य ट्रॅकिंग',qr:'माझा QR',privacy:'गोपनीयता व प्रवेश',billing:'बिल',notifs:'सूचना',settings:'सेटिंग्ज',emergency:'आपत्कालीन',logout:'लॉगआउट',cases:'केस',verify:'औषध पडताळणी',chats:'संदेश',patients:'रुग्ण',dappts:'माझी अपॉइंटमेंट',earnings:'माझी कमाई',hdash:'रुग्णालय डॅशबोर्ड',hpatients:'सर्व रुग्ण',hdoctors:'सर्व डॉक्टर',hcases:'सर्व केस',hmeds:'औषधे',happts:'अपॉइंटमेंट',hupload:'अहवाल अपलोड',greetM:'शुभ प्रभात',greetA:'नमस्कार',greetE:'शुभ संध्याकाळ',page:'MHD रुग्णालय'},
- gu:{dashboard:'ડેશબોર્ડ',upcoming:'આગામી',mycase:'મારો કેસ',meds:'દવાઓ',reports:'રિપોર્ટ',appts:'એપોઇન્ટમેન્ટ',doctors:'મારા ડૉક્ટર',timeline:'ટાઇમલાઇન',tracking:'હેલ્થ ટ્રેકિંગ',qr:'મારો QR',privacy:'ગોપનીયતા અને પ્રવેશ',billing:'બિલ',notifs:'સૂચનાઓ',settings:'સેટિંગ્સ',emergency:'કટોકટી',logout:'લોગ આઉટ',cases:'કેસ',verify:'દવા ચકાસણી',chats:'સંદેશા',patients:'દર્દીઓ',dappts:'મારી એપોઇન્ટમેન્ટ',earnings:'મારી કમાણી',hdash:'હોસ્પિટલ ડેશબોર્ડ',hpatients:'બધા દર્દીઓ',hdoctors:'બધા ડૉક્ટર',hcases:'બધા કેસ',hmeds:'દવાઓ',happts:'એપોઇન્ટમેન્ટ',hupload:'રિપોર્ટ અપલોડ',greetM:'સુપ્રભાત',greetA:'શુભ બપોર',greetE:'શુભ સાંજ',page:'MHD હોસ્પિટલ'},
- pa:{dashboard:'ਡੈਸ਼ਬੋਰਡ',upcoming:'ਆਉਣ ਵਾਲੇ',mycase:'ਮੇਰਾ ਕੇਸ',meds:'ਦਵਾਈਆਂ',reports:'ਰਿਪੋਰਟਾਂ',appts:'ਅਪਾਇੰਟਮੈਂਟ',doctors:'ਮੇਰੇ ਡਾਕਟਰ',timeline:'ਟਾਈਮਲਾਈਨ',tracking:'ਸਿਹਤ ਟ੍ਰੈਕਿੰਗ',qr:'ਮੇਰਾ QR',privacy:'ਗੁਪਤਤਾ ਅਤੇ ਪਹੁੰਚ',billing:'ਬਿੱਲ',notifs:'ਸੂਚਨਾਵਾਂ',settings:'ਸੈਟਿੰਗਾਂ',emergency:'ਐਮਰਜੈਂਸੀ',logout:'ਲੌਗ ਆਉਟ',cases:'ਕੇਸ',verify:'ਦਵਾਈ ਪੁਸ਼ਟੀ',chats:'ਸੁਨੇਹੇ',patients:'ਮਰੀਜ਼',dappts:'ਮੇਰੀਆਂ ਅਪਾਇੰਟਮੈਂਟਾਂ',earnings:'ਮੇਰੀ ਕਮਾਈ',hdash:'ਹਸਪਤਾਲ ਡੈਸ਼ਬੋਰਡ',hpatients:'ਸਾਰੇ ਮਰੀਜ਼',hdoctors:'ਸਾਰੇ ਡਾਕਟਰ',hcases:'ਸਾਰੇ ਕੇਸ',hmeds:'ਦਵਾਈਆਂ',happts:'ਅਪਾਇੰਟਮੈਂਟ',hupload:'ਰਿਪੋਰਟ ਅੱਪਲੋਡ',greetM:'ਸ਼ੁਭ ਸਵੇਰ',greetA:'ਸ਼ੁਭ ਦੁਪਹਿਰ',greetE:'ਸ਼ੁਭ ਸ਼ਾਮ',page:'MHD ਹਸਪਤਾਲ'}
+ en:{dashboard:'Dashboard',upcoming:'Upcoming',mycase:'My Case',meds:'Medicines',reports:'Reports',appts:'Appointments',doctors:'My Doctors',timeline:'Timeline',tracking:'Health Overview',qr:'My QR',privacy:'Privacy & Access',billing:'Billing',notifs:'Notifications',settings:'Settings',emergency:'Emergency',logout:'Logout',cases:'Cases',verify:'Verify Medicines',chats:'Messages',patients:'Patients',dappts:'My Appointments',earnings:'My Earnings',healthinput:'Health Input',hdash:'Hospital Dashboard',hpatients:'All Patients',hdoctors:'All Doctors',hcases:'All Cases',hmeds:'Medicines',hdocs:'Verify Documents',happts:'Appointments',hupload:'Upload Report',greetM:'Good Morning',greetA:'Good Afternoon',greetE:'Good Evening',page:'MHD Hospital'},
+ hi:{dashboard:'डैशबोर्ड',upcoming:'आगामी',mycase:'मेरा केस',meds:'दवाइयाँ',reports:'रिपोर्ट',appts:'अपॉइंटमेंट',doctors:'मेरे डॉक्टर',timeline:'टाइमलाइन',tracking:'स्वास्थ्य विवरण',qr:'मेरा QR',privacy:'गोपनीयता व पहुँच',billing:'बिल',notifs:'सूचनाएँ',settings:'सेटिंग्स',emergency:'आपातकाल',logout:'लॉगआउट',cases:'केस',verify:'दवा सत्यापन',chats:'संदेश',patients:'मरीज़',dappts:'मेरे अपॉइंटमेंट',earnings:'मेरी कमाई',healthinput:'स्वास्थ्य प्रविष्टि',hdash:'अस्पताल डैशबोर्ड',hpatients:'सभी मरीज़',hdoctors:'सभी डॉक्टर',hcases:'सभी केस',hmeds:'दवाइयाँ',hdocs:'दस्तावेज़ सत्यापन',happts:'अपॉइंटमेंट',hupload:'रिपोर्ट अपलोड',greetM:'सुप्रभात',greetA:'नमस्कार',greetE:'शुभ संध्या',page:'MHD हॉस्पिटल'},
+ ta:{dashboard:'டாஷ்போர்டு',upcoming:'வரவிருக்கும்',mycase:'என் கேஸ்',meds:'மருந்துகள்',reports:'அறிக்கைகள்',appts:'சந்திப்புகள்',doctors:'என் மருத்துவர்கள்',timeline:'காலவரிசை',tracking:'உடல்நல கண்ணோட்டம்',qr:'என் QR',privacy:'தனியுரிமை & அணுகல்',billing:'பில்',notifs:'அறிவிப்புகள்',settings:'அமைப்புகள்',emergency:'அவசரம்',logout:'வெளியேறு',cases:'கேஸ்கள்',verify:'மருந்து சரிபார்ப்பு',chats:'செய்திகள்',patients:'நோயாளிகள்',dappts:'என் சந்திப்புகள்',earnings:'என் வருவாய்',healthinput:'உடல்நல பதிவு',hdash:'மருத்துவமனை டாஷ்போர்டு',hpatients:'அனைத்து நோயாளிகள்',hdoctors:'அனைத்து மருத்துவர்கள்',hcases:'அனைத்து கேஸ்கள்',hmeds:'மருந்துகள்',hdocs:'ஆவண சரிபார்ப்பு',happts:'சந்திப்புகள்',hupload:'அறிக்கை பதிவேற்றம்',greetM:'காலை வணக்கம்',greetA:'மதிய வணக்கம்',greetE:'மாலை வணக்கம்',page:'MHD மருத்துவமனை'},
+ te:{dashboard:'డాష్‌బోర్డ్',upcoming:'రాబోయేవి',mycase:'నా కేసు',meds:'మందులు',reports:'నివేదికలు',appts:'అపాయింట్‌మెంట్లు',doctors:'నా డాక్టర్లు',timeline:'టైమ్‌లైన్',tracking:'ఆరోగ్య సమాచారం',qr:'నా QR',privacy:'గోప్యత & యాక్సెస్',billing:'బిల్లు',notifs:'నోటిఫికేషన్లు',settings:'సెట్టింగ్‌లు',emergency:'అత్యవసరం',logout:'లాగ్ అవుట్',cases:'కేసులు',verify:'మందు ధృవీకరణ',chats:'సందేశాలు',patients:'రోగులు',dappts:'నా అపాయింట్‌మెంట్లు',earnings:'నా ఆదాయం',healthinput:'ఆరోగ్య నమోదు',hdash:'ఆసుపత్రి డాష్‌బోర్డ్',hpatients:'అన్ని రోగులు',hdoctors:'అన్ని డాక్టర్లు',hcases:'అన్ని కేసులు',hmeds:'మందులు',hdocs:'పత్ర ధృవీకరణ',happts:'అపాయింట్‌మెంట్లు',hupload:'నివేదిక అప్‌లోడ్',greetM:'శుభోదయం',greetA:'శుభ మధ్యాహ్నం',greetE:'శుభ సాయంత్రం',page:'MHD ఆసుపత్రి'},
+ ml:{dashboard:'ഡാഷ്ബോർഡ്',upcoming:'വരാനിരിക്കുന്നവ',mycase:'എന്റെ കേസ്',meds:'മരുന്നുകൾ',reports:'റിപ്പോർട്ടുകൾ',appts:'അപ്പോയിന്റ്മെന്റുകൾ',doctors:'എന്റെ ഡോക്ടർമാർ',timeline:'ടൈംലൈൻ',tracking:'ആരോഗ്യ അവലോകനം',qr:'എന്റെ QR',privacy:'സ്വകാര്യത & ആക്സസ്സ്',billing:'ബിൽ',notifs:'അറിയിപ്പുകൾ',settings:'സെറ്റിംഗ്സ്',emergency:'അത്യാഹിതം',logout:'ലോഗ് ഔട്ട്',cases:'കേസുകൾ',verify:'മരുന്ന് സ്ഥിരീകരണം',chats:'സന്ദേശങ്ങൾ',patients:'രോഗികൾ',dappts:'എന്റെ അപ്പോയിന്റ്മെന്റുകൾ',earnings:'എന്റെ വരുമാനം',healthinput:'ആരോഗ്യ നമോദു',hdash:'ആശുപത്രി ഡാഷ്ബോർഡ്',hpatients:'എല്ലാ രോഗികൾ',hdoctors:'എല്ലാ ഡോക്ടർമാർ',hcases:'എല്ലാ കേസുകൾ',hmeds:'മരുന്നുകൾ',hdocs:'രേഖ സ്ഥിരീകരണം',happts:'അപ്പോയിന്റ്മെന്റുകൾ',hupload:'റിപ്പോർട്ട് അപ്‌ലോഡ്',greetM:'സുപ്രഭാതം',greetA:'ശുഭ ഉച്ച',greetE:'ശുഭ സന്ധ്യ',page:'MHD ആശുപത്രി'},
+ kn:{dashboard:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',upcoming:'ಮುಂಬರುವ',mycase:'ನನ್ನ ಪ್ರಕರಣ',meds:'ಔಷಧಿಗಳು',reports:'ವರದಿಗಳು',appts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',doctors:'ನನ್ನ ವೈದ್ಯರು',timeline:'ಟೈಮ್‌ಲೈನ್',tracking:'ಆರೋಗ್ಯ ಸಮೀಕ್ಷೆ',qr:'ನನ್ನ QR',privacy:'ಗೋಪ್ಯತೆ ಮತ್ತು ಪ್ರವೇಶ',billing:'ಬಿಲ್',notifs:'ಅಧಿಸೂಚನೆಗಳು',settings:'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',emergency:'ತುರ್ತು',logout:'ಲಾಗ್ ಔಟ್',cases:'ಪ್ರಕರಣಗಳು',verify:'ಔಷಧ ಪರಿಶೀಲನೆ',chats:'ಸಂದೇಶಗಳು',patients:'ರೋಗಿಗಳು',dappts:'ನನ್ನ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',earnings:'ನನ್ನ ಆದಾಯ',healthinput:'ಆರೋಗ್ಯ ನಮೂದು',hdash:'ಆಸ್ಪತ್ರೆ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',hpatients:'ಎಲ್ಲಾ ರೋಗಿಗಳು',hdoctors:'ಎಲ್ಲಾ ವೈದ್ಯರು',hcases:'ಎಲ್ಲಾ ಪ್ರಕರಣಗಳು',hmeds:'ಔಷಧಿಗಳು',hdocs:'ದಸ್ತಾವೇಜು ಪರಿಶೀಲನೆ',happts:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',hupload:'ವರದಿ ಅಪ್‌ಲೋಡ್',greetM:'ಶುಭೋದಯ',greetA:'ಶುಭ ಮಧ್ಯಾಹ್ನ',greetE:'ಶುಭ ಸಂಜೆ',page:'MHD ಆಸ್ಪತ್ರೆ'},
+ bn:{dashboard:'ড্যাশবোর্ড',upcoming:'আসন্ন',mycase:'আমার কেস',meds:'ওষুধ',reports:'রিপোর্ট',appts:'অ্যাপয়েন্টমেন্ট',doctors:'আমার ডাক্তার',timeline:'টাইমলাইন',tracking:'স্বাস্থ্য ওভারভিউ',qr:'আমার QR',privacy:'গোপনীয়তা ও অ্যাক্সেস',billing:'বিল',notifs:'বিজ্ঞপ্তি',settings:'সেটিংস',emergency:'জরুরি',logout:'লগআউট',cases:'কেস',verify:'ওষুধ যাচাই',chats:'বার্তা',patients:'রোগী',dappts:'আমার অ্যাপয়েন্টমেন্ট',earnings:'আমার আয়',healthinput:'স্বাস্থ্য এন্ট্রি',hdash:'হাসপাতাল ড্যাশবোর্ড',hpatients:'সব রোগী',hdoctors:'সব ডাক্তার',hcases:'সব কেস',hmeds:'ওষুধ',hdocs:'ডকুমেন্ট যাচাই',happts:'অ্যাপয়েন্টমেন্ট',hupload:'রিপোর্ট আপলোড',greetM:'সুপ্রভাত',greetA:'শুভ অপরাহ্ন',greetE:'শুভ সন্ধ্যা',page:'MHD হাসপাতাল'},
+ mr:{dashboard:'डॅशबोर्ड',upcoming:'आगामी',mycase:'माझा केस',meds:'औषधे',reports:'अहवाल',appts:'अपॉइंटमेंट',doctors:'माझे डॉक्टर',timeline:'टाइमलाइन',tracking:'आरोग्य आढावा',qr:'माझा QR',privacy:'गोपनीयता व प्रवेश',billing:'बिल',notifs:'सूचना',settings:'सेटिंग्ज',emergency:'आपत्कालीन',logout:'लॉगआउट',cases:'केस',verify:'औषध पडताळणी',chats:'संदेश',patients:'रुग्ण',dappts:'माझी अपॉइंटमेंट',earnings:'माझी कमाई',healthinput:'आरोग्य नोंद',hdash:'रुग्णालय डॅशबोर्ड',hpatients:'सर्व रुग्ण',hdoctors:'सर्व डॉक्टर',hcases:'सर्व केस',hmeds:'औषधे',hdocs:'दस्तऐवज पडताळणी',happts:'अपॉइंटमेंट',hupload:'अहवाल अपलोड',greetM:'शुभ प्रभात',greetA:'नमस्कार',greetE:'शुभ संध्याकाळ',page:'MHD रुग्णालय'},
+ gu:{dashboard:'ડેશબોર્ડ',upcoming:'આગામી',mycase:'મારો કેસ',meds:'દવાઓ',reports:'રિપોર્ટ',appts:'એપોઇન્ટમેન્ટ',doctors:'મારા ડૉક્ટર',timeline:'ટાઇમલાઇન',tracking:'આરોગ્ય ઝાંખી',qr:'મારો QR',privacy:'ગોપનીયતા અને પ્રવેશ',billing:'બિલ',notifs:'સૂચનાઓ',settings:'સેટિંગ્સ',emergency:'કટોકટી',logout:'લોગ આઉટ',cases:'કેસ',verify:'દવા ચકાસણી',chats:'સંદેશા',patients:'દર્દીઓ',dappts:'મારી એપોઇન્ટમેન્ટ',earnings:'મારી કમાણી',healthinput:'આરોગ્ય એન્ટ્રી',hdash:'હોસ્પિટલ ડેશબોર્ડ',hpatients:'બધા દર્દીઓ',hdoctors:'બધા ડૉક્ટર',hcases:'બધા કેસ',hmeds:'દવાઓ',hdocs:'દસ્તાવેજ ચકાસણી',happts:'એપોઇન્ટમેન્ટ',hupload:'રિપોર્ટ અપલોડ',greetM:'સુપ્રભાત',greetA:'શુભ બપોર',greetE:'શુભ સાંજ',page:'MHD હોસ્પિટલ'},
+ pa:{dashboard:'ਡੈਸ਼ਬੋਰਡ',upcoming:'ਆਉਣ ਵਾਲੇ',mycase:'ਮੇਰਾ ਕੇਸ',meds:'ਦਵਾਈਆਂ',reports:'ਰਿਪੋਰਟਾਂ',appts:'ਅਪਾਇੰਟਮੈਂਟ',doctors:'ਮੇਰੇ ਡਾਕਟਰ',timeline:'ਟਾਈਮਲਾਈਨ',tracking:'ਸਿਹਤ ਝਲਕ',qr:'ਮੇਰਾ QR',privacy:'ਗੁਪਤਤਾ ਅਤੇ ਪਹੁੰਚ',billing:'ਬਿੱਲ',notifs:'ਸੂਚਨਾਵਾਂ',settings:'ਸੈਟਿੰਗਾਂ',emergency:'ਐਮਰਜੈਂਸੀ',logout:'ਲੌਗ ਆਉਟ',cases:'ਕੇਸ',verify:'ਦਵਾਈ ਪੁਸ਼ਟੀ',chats:'ਸੁਨੇਹੇ',patients:'ਮਰੀਜ਼',dappts:'ਮੇਰੀਆਂ ਅਪਾਇੰਟਮੈਂਟਾਂ',earnings:'ਮੇਰੀ ਕਮਾਈ',healthinput:'ਸਿਹਤ ਐਂਟਰੀ',hdash:'ਹਸਪਤਾਲ ਡੈਸ਼ਬੋਰਡ',hpatients:'ਸਾਰੇ ਮਰੀਜ਼',hdoctors:'ਸਾਰੇ ਡਾਕਟਰ',hcases:'ਸਾਰੇ ਕੇਸ',hmeds:'ਦਵਾਈਆਂ',hdocs:'ਦਸਤਾਵੇਜ਼ ਪੁਸ਼ਟੀ',happts:'ਅਪਾਇੰਟਮੈਂਟ',hupload:'ਰਿਪੋਰਟ ਅੱਪਲੋਡ',greetM:'ਸ਼ੁਭ ਸਵੇਰ',greetA:'ਸ਼ੁਭ ਦੁਪਹਿਰ',greetE:'ਸ਼ੁਭ ਸ਼ਾਮ',page:'MHD ਹਸਪਤਾਲ'}
 };
 let CUR_LANG = localStorage.getItem('mhd_lang') || 'en';
 const t = k => (I18N[CUR_LANG] && I18N[CUR_LANG][k]) || I18N.en[k] || k;
@@ -114,8 +328,8 @@ function setLanguage(v) {
 fillLangSelects();
 
 let ME = null, ROLE = null, UNBINDS = [];
-const STATE = { doctors: [], patients: [], cases: [], myReviewed: [], meds: [], reports: [], appts: [], timeline: [], access: [], consents: [], notifs: [], vitals: [], unverifiedMeds: [], allCases: [], medsAll: [], bills: [], myBills: [], billsAll: [] };
-let CURRENT_CASE = null, CHAT_WITH = null, CURRENT_APTAB = 'upcoming', CURRENT_CTAB = 'waiting', chosenSlot = null, chatUnsub = null, selectedPain = null, pendingPhoto = null;
+const STATE = { doctors: [], patients: [], cases: [], myReviewed: [], meds: [], reports: [], appts: [], timeline: [], access: [], consents: [], notifs: [], vitals: [], unverifiedMeds: [], allCases: [], medsAll: [], bills: [], myBills: [], billsAll: [], reportsAll: [] };
+let CURRENT_CASE = null, CHAT_WITH = null, CURRENT_APTAB = 'upcoming', CURRENT_CTAB = 'waiting', chosenSlot = null, chatUnsub = null, pendingPhoto = null, pendingDoc = null;
 let dutyWatch = null, lastLocSend = 0, focusDoctorId = null, cvMap = null, markersLayer = null;
 let CURRENT_PAGE = null, NAV_STACK = [];
 
@@ -145,16 +359,20 @@ applyTheme(localStorage.getItem('mhd_theme') || 'light');
 function setFont(v) { document.body.classList.remove('font-sm', 'font-lg'); if (v === 'sm') document.body.classList.add('font-sm'); if (v === 'lg') document.body.classList.add('font-lg'); localStorage.setItem('mhd_font', v); }
 setFont(localStorage.getItem('mhd_font') || 'md');
 
-/* ---------- AUTH TABS / DEMO ---------- */
- $('#tabLogin').onclick = () => { $('#tabLogin').classList.add('active'); $('#tabReg').classList.remove('active'); $('#formLogin').classList.remove('hidden'); $('#formReg').classList.add('hidden'); };
- $('#tabReg').onclick = () => { $('#tabReg').classList.add('active'); $('#tabLogin').classList.remove('active'); $('#formReg').classList.remove('hidden'); $('#formLogin').classList.add('hidden'); };
- $$('.reg-pill').forEach(p => p.onclick = () => {
-  $$('.reg-pill').forEach(x => x.classList.remove('active')); p.classList.add('active');
+/* ---------- ROLE PILL TOGGLE (delegated — cannot break) ---------- */
+document.addEventListener('click', e => {
+  const p = e.target.closest('.reg-pill');
+  if (!p) return;
+  $$('.reg-pill').forEach(x => x.classList.remove('active'));
+  p.classList.add('active');
   const r = p.dataset.regrole;
-  $('#regPatient').classList.toggle('hidden', r !== 'patient');
-  $('#regDoctor').classList.toggle('hidden', r !== 'doctor');
-  $('#regHospital').classList.toggle('hidden', r !== 'hospital');
+  const rp = document.getElementById('regPatient'), rd = document.getElementById('regDoctor'), rh = document.getElementById('regHospital');
+  if (rp) rp.classList.toggle('hidden', r !== 'patient');
+  if (rd) rd.classList.toggle('hidden', r !== 'doctor');
+  if (rh) rh.classList.toggle('hidden', r !== 'hospital');
 });
+
+/* ---------- DEMO ACCOUNTS ---------- */
 const DEMO_PASS = 'demo123';
 const DEMO = {
   patient: { email: 'patient.demo@mhdhospital.in', profile: { role: 'patient', name: 'Arjun Kumar', dob: '1980-03-14', gender: 'Male', bloodGroup: 'O+', phone: '9840012345', aadhaar: '432187651122', address: '12, Gandhi Street, Anna Nagar, Chennai 600040', emergencyName: 'Priya Kumar (Wife)', emergencyPhone: '9840055555', heightCm: '170', weightKg: '74', allergies: 'Penicillin (medicine allergy), Dust (other)', conditions: 'Type 2 Diabetes (2021), Hypertension (2022)', surgeries: 'Appendectomy | 2019 | Apollo Hospitals | Dr. Rajan | Appendicitis\nKnee Arthroscopy | 2022 | Kauvery Hospital | Dr. Menon | Meniscus tear', accidents: 'Two-wheeler accident 2016 — right arm fracture, treated at Kauvery Hospital', familyHistory: 'Father — Diabetes; Grandmother — Hypertension', income: '240000', language: 'en', healthId: 'MHD-DEMO01' } },
@@ -164,6 +382,7 @@ const DEMO = {
 async function quickDemo(role) {
   const d = DEMO[role]; if (!d) return;
   cleanupSession();
+  try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch (e) {}
   try { await auth.signInWithEmailAndPassword(d.email, DEMO_PASS); toast('Logged in as demo ' + role + ' ✅'); }
   catch (err) {
     const c = (err && err.code) || '';
@@ -181,79 +400,38 @@ async function quickDemo(role) {
   }
 }
 document.addEventListener('click', e => { const dl = e.target.closest('[data-act="demo-login"]'); if (dl) quickDemo(dl.dataset.role); });
- $$('[data-act="demo-fill"]').forEach(b => b.onclick = () => {
-  $('#rpName').value = 'Arjun Kumar';
-  $('#rpDob').value = '1980-03-14'; if ($('#rpDob')._dpSync) $('#rpDob')._dpSync();
-  $('#rpGender').value = 'Male';
-  $('#rpBlood').value = 'O+'; $('#rpPhone').value = '9840012345'; $('#rpAadhaar').value = '432187651122';
-  $('#rpAddress').value = '12, Gandhi Street, Anna Nagar, Chennai 600040';
-  $('#rpEName').value = 'Priya Kumar (Wife)'; $('#rpEPhone').value = '9840055555';
-  $('#rpHeight').value = 170; $('#rpWeight').value = 74; $('#rpIncome').value = 240000;
-  $('#rpAllergies').value = 'Penicillin (medicine allergy), Dust (other)';
-  $('#rpConditions').value = 'Type 2 Diabetes (2021), Hypertension (2022)';
-  $('#rpSurgeries').value = 'Appendectomy | 2019 | Apollo Hospitals | Dr. Rajan | Appendicitis\nKnee Arthroscopy | 2022 | Kauvery Hospital | Dr. Menon | Meniscus tear';
-  $('#rpAccidents').value = 'Two-wheeler accident 2016 — right arm fracture, treated at Kauvery Hospital';
-  $('#rpFamily').value = 'Father — Diabetes; Grandmother — Hypertension';
-  $('#rpEmail').value = 'arjun.demo' + Math.floor(Math.random() * 9000) + '@mhdhospital.in'; $('#rpPass').value = 'demo123';
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-act="demo-fill"]')) return;
+  const setv = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setv('rpName', 'Arjun Kumar');
+  setv('rpDob', '1980-03-14'); if (document.getElementById('rpDob') && document.getElementById('rpDob')._dpSync) document.getElementById('rpDob')._dpSync();
+  setv('rpGender', 'Male');
+  setv('rpBlood', 'O+'); setv('rpPhone', '9840012345'); setv('rpAadhaar', '432187651122');
+  setv('rpAddress', '12, Gandhi Street, Anna Nagar, Chennai 600040');
+  setv('rpEName', 'Priya Kumar (Wife)'); setv('rpEPhone', '9840055555');
+  setv('rpHeight', '170'); setv('rpWeight', '74'); setv('rpIncome', '240000');
+  setv('rpAllergies', 'Penicillin (medicine allergy), Dust (other)');
+  setv('rpConditions', 'Type 2 Diabetes (2021), Hypertension (2022)');
+  setv('rpSurgeries', 'Appendectomy | 2019 | Apollo Hospitals | Dr. Rajan | Appendicitis\nKnee Arthroscopy | 2022 | Kauvery Hospital | Dr. Menon | Meniscus tear');
+  setv('rpAccidents', 'Two-wheeler accident 2016 — right arm fracture, treated at Kauvery Hospital');
+  setv('rpFamily', 'Father — Diabetes; Grandmother — Hypertension');
+  setv('rpEmail', 'arjun.demo' + Math.floor(Math.random() * 9000) + '@mhdhospital.in'); setv('rpPass', 'demo123');
   toast('Demo data filled ✅ — now press "Create Health ID"');
 });
 
-/* ---------- REGISTER ---------- */
- $('#formReg').addEventListener('submit', async e => {
-  e.preventDefault();
-  const role = $('.reg-pill.active').dataset.regrole;
-  try {
-    let email, pass, profile;
-    if (role === 'patient') {
-      const name = $('#rpName').value.trim(), dob = $('#rpDob').value, phone = $('#rpPhone').value.trim();
-      const aad = $('#rpAadhaar').value.replace(/\D/g, '');
-      email = $('#rpEmail').value.trim(); pass = $('#rpPass').value;
-      if (!name || !dob || !phone) return toast('⚠️ Name, Date of Birth (pick from calendar) and Phone are required.');
-      if (aad.length !== 12) return toast('⚠️ Aadhaar must be exactly 12 digits.');
-      if (!email || pass.length < 6) return toast('⚠️ Email and a 6+ character password are required.');
-      profile = { role: 'patient', name, dob, gender: $('#rpGender').value, bloodGroup: $('#rpBlood').value, phone, aadhaar: aad,
-        address: $('#rpAddress').value.trim(), emergencyName: $('#rpEName').value.trim(), emergencyPhone: $('#rpEPhone').value.trim(),
-        heightCm: $('#rpHeight').value, weightKg: $('#rpWeight').value, allergies: $('#rpAllergies').value.trim(),
-        conditions: $('#rpConditions').value.trim(), surgeries: $('#rpSurgeries').value.trim(), accidents: $('#rpAccidents').value.trim(),
-        familyHistory: $('#rpFamily').value.trim(), income: $('#rpIncome').value, language: CUR_LANG };
-    } else if (role === 'doctor') {
-      email = $('#rdEmail').value.trim(); pass = $('#rdPass').value;
-      if (!$('#rdName').value.trim() || !$('#rdSpec').value.trim() || !$('#rdHospital').value.trim() || !$('#rdReg').value.trim()) return toast('⚠️ Please fill all required doctor fields.');
-      if (!email || pass.length < 6) return toast('⚠️ Email and a 6+ character password are required.');
-      profile = { role: 'doctor', name: $('#rdName').value.trim(), specialization: $('#rdSpec').value.trim(), experience: $('#rdExp').value, hospital: $('#rdHospital').value.trim(), regNo: $('#rdReg').value.trim(), phone: $('#rdPhone').value.trim(), onDuty: false, language: CUR_LANG };
-    } else {
-      email = $('#rhEmail').value.trim(); pass = $('#rhPass').value;
-      if (!$('#rhName').value.trim() || !$('#rhAdmin').value.trim()) return toast('⚠️ Hospital name and admin name are required.');
-      if (!email || pass.length < 6) return toast('⚠️ Email and a 6+ character password are required.');
-      profile = { role: 'hospital', name: $('#rhName').value.trim(), adminName: $('#rhAdmin').value.trim(), phone: $('#rhPhone').value.trim(), address: $('#rhAddress').value.trim(), licenseNo: $('#rhLicense').value.trim(), language: CUR_LANG };
-    }
-    const cred = await auth.createUserWithEmailAndPassword(email, pass);
-    profile.email = email; profile.createdAt = Date.now();
-    if (role === 'patient') profile.healthId = 'MHD-' + uid6();
-    try { await db.collection('users').doc(cred.user.uid).set(profile); }
-    catch (dbErr) { await cred.user.delete().catch(() => {}); return toast('⚠️ Firestore issue: ' + errMsg(dbErr)); }
-    toast('✅ Welcome to MHD Hospital!' + (profile.healthId ? ' Your Health ID: ' + profile.healthId : ''));
-  } catch (err) { toast('⚠️ ' + errMsg(err)); }
-});
-
-/* ---------- LOGIN / SESSION ---------- */
- $('#formLogin').addEventListener('submit', async e => {
-  e.preventDefault();
-  try { await auth.signInWithEmailAndPassword($('#loginEmail').value.trim(), $('#loginPass').value); }
-  catch (err) { toast('⚠️ ' + errMsg(err)); }
-});
+/* ---------- SESSION ---------- */
 function cleanupSession() {
   try { if (ROLE === 'doctor' && ME) db.collection('users').doc(ME.id).update({ onDuty: false, location: firebase.firestore.FieldValue.delete() }).catch(() => {}); } catch (e) {}
   if (dutyWatch) { navigator.geolocation.clearWatch(dutyWatch); dutyWatch = null; }
   if (chatUnsub) { chatUnsub(); chatUnsub = null; }
   UNBINDS.forEach(u => { try { u(); } catch (e) {} }); UNBINDS = [];
-  ME = null; ROLE = null; CURRENT_CASE = null; CHAT_WITH = null; chosenSlot = null; selectedPain = null; pendingPhoto = null; CURRENT_PAGE = null; NAV_STACK = [];
+  ME = null; ROLE = null; CURRENT_CASE = null; CHAT_WITH = null; chosenSlot = null; pendingPhoto = null; pendingDoc = null; CURRENT_PAGE = null; NAV_STACK = [];
   Object.keys(STATE).forEach(k => STATE[k] = Array.isArray(STATE[k]) ? [] : STATE[k]);
 }
 async function doLogout() { cleanupSession(); await auth.signOut().catch(() => {}); location.reload(); }
 
 auth.onAuthStateChanged(async user => {
-  if (!user) { $('#screen-auth').classList.remove('hidden'); $('#app').classList.add('hidden'); return; }
+  if (!user) { $('#screen-auth').classList.remove('hidden'); $('#app').classList.add('hidden'); showAuth('login'); return; }
   try {
     let snap = null;
     for (let i = 0; i < 4; i++) {
@@ -269,13 +447,13 @@ auth.onAuthStateChanged(async user => {
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
 
-/* ---------- NAV + BACK/HOME ---------- */
+/* ---------- NAV ---------- */
 const MENUS = {
-  patient: [['p-dash', '🏠', 'dashboard'], ['p-upcoming', '🗓️', 'upcoming'], ['p-case', '📋', 'mycase'], ['p-meds', '💊', 'meds'], ['p-reports', '🧪', 'reports'], ['p-appts', '📅', 'appts'], ['p-doctors', '👨‍⚕️', 'doctors'], ['p-timeline', '🕐', 'timeline'], ['p-vitals', '📈', 'tracking'], ['p-qr', '📱', 'qr'], ['p-privacy', '🔒', 'privacy'], ['p-billing', '💰', 'billing'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings'], ['EMERGENCY', '🚑', 'emergency']],
-  doctor: [['d-dash', '🏠', 'dashboard'], ['d-cases', '📋', 'cases'], ['d-verify', '💊', 'verify'], ['d-chats', '💬', 'chats'], ['d-patients', '🔍', 'patients'], ['d-appts', '📅', 'dappts'], ['d-billing', '💰', 'earnings'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings']],
-  hospital: [['h-dash', '🏥', 'hdash'], ['h-patients', '👥', 'hpatients'], ['h-doctors', '👨‍⚕️', 'hdoctors'], ['h-cases', '📋', 'hcases'], ['h-meds', '💊', 'hmeds'], ['h-appts', '📅', 'happts'], ['h-billing', '💰', 'billing'], ['h-upload', '🧪', 'hupload'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings']]
+  patient: [['p-dash', '🏠', 'dashboard'], ['p-upcoming', '🗓️', 'upcoming'], ['p-case', '📋', 'mycase'], ['p-meds', '💊', 'meds'], ['p-reports', '📷', 'reports'], ['p-appts', '📅', 'appts'], ['p-doctors', '👨‍⚕️', 'doctors'], ['p-timeline', '🕐', 'timeline'], ['p-vitals', '🩺', 'tracking'], ['p-qr', '📱', 'qr'], ['p-privacy', '🔒', 'privacy'], ['p-billing', '💰', 'billing'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings'], ['EMERGENCY', '🚑', 'emergency']],
+  doctor: [['d-dash', '🏠', 'dashboard'], ['d-vitals', '🩺', 'healthinput'], ['d-cases', '📋', 'cases'], ['d-verify', '💊', 'verify'], ['d-chats', '💬', 'chats'], ['d-patients', '🔍', 'patients'], ['d-appts', '📅', 'dappts'], ['d-billing', '💰', 'earnings'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings']],
+  hospital: [['h-dash', '🏥', 'hdash'], ['h-patients', '👥', 'hpatients'], ['h-doctors', '👨‍⚕️', 'hdoctors'], ['h-cases', '📋', 'hcases'], ['h-meds', '💊', 'hmeds'], ['h-docs', '📄', 'hdocs'], ['h-appts', '📅', 'happts'], ['h-billing', '💰', 'billing'], ['h-upload', '🧪', 'hupload'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings']]
 };
-const TKEY = { 'p-dash': 'dashboard', 'p-upcoming': 'upcoming', 'p-case': 'mycase', 'p-meds': 'meds', 'p-reports': 'reports', 'p-appts': 'appts', 'p-doctors': 'doctors', 'p-timeline': 'timeline', 'p-vitals': 'tracking', 'p-qr': 'qr', 'p-privacy': 'privacy', 'p-billing': 'billing', 'p-notifs': 'notifs', 'p-settings': 'settings', 'd-dash': 'dashboard', 'd-cases': 'cases', 'd-verify': 'verify', 'd-chats': 'chats', 'd-case': 'cases', 'd-patients': 'patients', 'd-appts': 'dappts', 'd-billing': 'earnings', 'h-dash': 'hdash', 'h-patients': 'hpatients', 'h-doctors': 'hdoctors', 'h-cases': 'hcases', 'h-meds': 'hmeds', 'h-appts': 'happts', 'h-upload': 'hupload', 'h-billing': 'billing' };
+const TKEY = { 'p-dash': 'dashboard', 'p-upcoming': 'upcoming', 'p-case': 'mycase', 'p-meds': 'meds', 'p-reports': 'reports', 'p-appts': 'appts', 'p-doctors': 'doctors', 'p-timeline': 'timeline', 'p-vitals': 'tracking', 'p-qr': 'qr', 'p-privacy': 'privacy', 'p-billing': 'billing', 'p-notifs': 'notifs', 'p-settings': 'settings', 'd-dash': 'dashboard', 'd-vitals': 'healthinput', 'd-cases': 'cases', 'd-verify': 'verify', 'd-chats': 'chats', 'd-case': 'cases', 'd-patients': 'patients', 'd-appts': 'dappts', 'd-billing': 'earnings', 'h-dash': 'hdash', 'h-patients': 'hpatients', 'h-doctors': 'hdoctors', 'h-cases': 'hcases', 'h-meds': 'hmeds', 'h-docs': 'hdocs', 'h-appts': 'happts', 'h-upload': 'hupload', 'h-billing': 'billing' };
 function homeId() { return ROLE === 'patient' ? 'p-dash' : ROLE === 'doctor' ? 'd-dash' : 'h-dash'; }
 function buildNav() {
   const nav = $('#sideNav'); nav.innerHTML = '';
@@ -318,8 +496,8 @@ function go(id, opts) {
     'p-qr': () => renderQR(), 'p-privacy': () => { renderConsent(); renderAccess(); }, 'p-billing': () => renderPBilling(),
     'p-notifs': () => renderNotifList(),
     'p-settings': () => renderSettings(),
-    'd-dash': () => renderDocDash(), 'd-cases': () => renderDoctorCases(), 'd-verify': () => renderVerifyMeds(), 'd-chats': () => renderDChats(), 'd-patients': () => renderPatients(), 'd-appts': () => renderDocAppts(), 'd-billing': () => renderDBilling(),
-    'h-dash': () => renderHospital(), 'h-patients': () => renderHPatients(), 'h-doctors': () => renderHDoctors(), 'h-cases': () => renderHCases(), 'h-meds': () => renderHMeds(), 'h-appts': () => renderHAppts(), 'h-billing': () => renderHBilling()
+    'd-dash': () => renderDocDash(), 'd-vitals': () => renderDocVitals(), 'd-cases': () => renderDoctorCases(), 'd-verify': () => renderVerifyMeds(), 'd-chats': () => renderDChats(), 'd-patients': () => renderPatients(), 'd-appts': () => renderDocAppts(), 'd-billing': () => renderDBilling(),
+    'h-dash': () => renderHospital(), 'h-patients': () => renderHPatients(), 'h-doctors': () => renderHDoctors(), 'h-cases': () => renderHCases(), 'h-meds': () => renderHMeds(), 'h-docs': () => renderHDocs(), 'h-appts': () => renderHAppts(), 'h-billing': () => renderHBilling()
   };
   if (hooks[id]) { try { hooks[id](); } catch (e) { console.error(e); toast('⚠️ Render error on this page: ' + e.message); } }
 }
@@ -352,7 +530,7 @@ function enterApp() {
 /* ---------- NOTIFICATIONS ---------- */
 function renderNotifList() {
   const nl = $('#notifList'); if (!nl) return;
-  nl.innerHTML = STATE.notifs.map(n => '<div class="list-item"><div class="li-main"><b>' + esc(n.title) + '</b><small>' + esc(n.body) + ' • ' + fmtDT(n.createdAt) + '</small></div></div>').join('') || '<p class="muted">No notifications yet — you will be notified here about case reviews, verified medicines, appointments, bills and reports.</p>';
+  nl.innerHTML = STATE.notifs.map(n => '<div class="list-item"><div class="li-main"><b>' + esc(n.title) + '</b><small>' + esc(n.body) + ' • ' + fmtDT(n.createdAt) + '</small></div></div>').join('') || '<p class="muted">No notifications yet — you will be notified here about case reviews, verified medicines, health records, documents, appointments, bills and reports.</p>';
 }
 function notify(to, title, body) { return db.collection('notifications').add({ to, title, body, read: false, createdAt: Date.now() }); }
 function notifyRole(role, title, body) { return notify('role:' + role, title, body); }
@@ -390,7 +568,7 @@ function queueNumberOf(a) {
 function bindPatient() {
   const pid = ME.id;
   UNBINDS.push(db.collection('cases').where('patientId', '==', pid).onSnapshot(s => { STATE.cases = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderMyCase(); renderPatientDash(); }, console.error));
-  UNBINDS.push(db.collection('medicines').where('patientId', '==', pid).onSnapshot(s => { STATE.meds = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderMeds(); renderPatientDash(); renderVitals(); renderUpcoming(); renderMyCase(); }, console.error));
+  UNBINDS.push(db.collection('medicines').where('patientId', '==', pid).onSnapshot(s => { STATE.meds = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderMeds(); renderPatientDash(); renderUpcoming(); renderMyCase(); }, console.error));
   UNBINDS.push(db.collection('reports').where('patientId', '==', pid).onSnapshot(s => { STATE.reports = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderReports(); renderPatientDash(); }, console.error));
   UNBINDS.push(db.collection('appointments').where('patientId', '==', pid).onSnapshot(s => { STATE.appts = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || '').localeCompare(a.date || '')); renderAppts(); renderPatientDash(); renderUpcoming(); }, console.error));
   UNBINDS.push(db.collection('timeline').where('patientId', '==', pid).onSnapshot(s => { STATE.timeline = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || '').localeCompare(a.date || '')); renderTimeline(); renderPatientDash(); }, console.error));
@@ -425,7 +603,7 @@ function buildTodaySchedule() {
     const taken = m.takenDates && m.takenDates[todayStr()];
     items.push({ time: schedTimeFromDosage(m.dosage), ico: '💊', title: 'Medicine — ' + m.name, sub: (m.verified ? '🟩 Verified' : '🔴 Awaiting verification') + ' • ' + (m.dosage || ''), status: taken ? 'taken' : 'upcoming', medId: m.id });
   });
-  if (!STATE.vitals.some(v => v.date === todayStr())) items.push({ time: '06:00 PM', ico: '🩺', title: 'Health Check', sub: 'Log temperature, BP & pain level', status: 'upcoming' });
+  if (!STATE.vitals.some(v => v.date === todayStr())) items.push({ time: '06:00 PM', ico: '🩺', title: 'Health Check', sub: 'Your doctor will record your vitals', status: 'upcoming' });
   return items.sort((a, b) => timeToMin(a.time) - timeToMin(b.time));
 }
 function renderTodaySchedule() {
@@ -433,7 +611,7 @@ function renderTodaySchedule() {
   el.innerHTML = buildTodaySchedule().map(it => {
     let chip = '';
     if (it.status === 'taken') chip = '<span class="chip ready">✓ Taken</span>';
-    else { chip = '<span class="chip blue">🕒 Upcoming</span>'; if (it.medId) chip += ' <button class="btn ghost sm" data-act="mark-taken" data-id="' + it.medId + '">Mark Taken</button>'; }
+    else chip = '<span class="chip blue">🕒 Upcoming</span>';
     return '<div class="sched-item"><span class="sched-time">' + esc(it.time) + '</span><span class="sched-dot"></span><span class="sched-ico">' + it.ico + '</span><span class="sched-main"><b>' + esc(it.title) + '</b><small>' + esc(it.sub || '') + '</small></span>' + chip + '</div>';
   }).join('') || '<p class="muted">Nothing scheduled today.</p>';
 }
@@ -455,26 +633,24 @@ function renderPatientDash() {
   const docsPct = Math.min(100, STATE.reports.length * 20);
   const vm = STATE.meds.length ? Math.round(STATE.meds.filter(m => m.verified).length / STATE.meds.length * 100) : 100;
   const active = STATE.meds.filter(m => m.active !== false);
-  const takenN = active.filter(m => m.takenDates && m.takenDates[todayStr()]).length;
-  const schedPct = active.length ? Math.round(takenN / active.length * 100) : 100;
-  const recovery = Math.round((profilePct + vm + docsPct + schedPct) / 4);
+  const fu = STATE.timeline.find(tt => tt.type === 'followup' && tt.due && tt.due >= todayStr());
+  const recovery = Math.round((profilePct + vm + docsPct + (fu ? 60 : 100)) / 4);
   const rr = $('#recoRing'); if (rr) rr.innerHTML = ringSVG(recovery);
   const rm = $('#recoMsg');
-  if (rm) rm.textContent = recovery >= 75 ? 'You are doing great! Keep following your schedule.' : recovery >= 40 ? 'Good progress — stay on track.' : 'Add documents, verify medicines and mark your schedule.';
+  if (rm) rm.textContent = recovery >= 75 ? 'You are doing great! Keep following your schedule.' : recovery >= 40 ? 'Good progress — stay on track.' : 'Add documents and complete your profile to improve tracking.';
   const unread = STATE.notifs.filter(n => !n.read).length;
   const upN = STATE.appts.filter(a => a.status === 'upcoming' && a.date >= todayStr()).length;
   const ms = $('#miniStats');
-  if (ms) ms.innerHTML = [['mc-blue', '💊', 'Medicines', active.length, 'Active'], ['mc-green', '📅', 'Appointments', upN, 'Upcoming'], ['mc-amber', '📋', 'Health Logs', STATE.vitals.filter(v => v.date === todayStr()).length, 'Today'], ['mc-red', '💬', 'Messages', unread, 'Unread']].map(([cls, ico, label, val, sub]) => '<div class="mini-card"><span class="mc-ico ' + cls + '">' + ico + '</span><span><span class="mc-label">' + label + '</span><b>' + val + '</b><small>' + sub + '</small></span></div>').join('');
+  if (ms) ms.innerHTML = [['mc-blue', '💊', 'Medicines', active.length, 'Active'], ['mc-green', '📅', 'Appointments', upN, 'Upcoming'], ['mc-amber', '🩺', 'Health Records', STATE.vitals.length, 'By Doctor'], ['mc-red', '💬', 'Messages', unread, 'Unread']].map(([cls, ico, label, val, sub]) => '<div class="mini-card"><span class="mc-ico ' + cls + '">' + ico + '</span><span><span class="mc-label">' + label + '</span><b>' + val + '</b><small>' + sub + '</small></span></div>').join('');
   const latest = STATE.cases[0];
   const rb = $('#reviewBanner');
   if (latest && latest.status === 'reviewed') { rb.className = 'banner'; rb.innerHTML = '✅ Doctor Reviewed Your Case — Dr. ' + esc(latest.doctorName) + ' verified it. <a href="#" data-nav="p-case" style="color:inherit;text-decoration:underline">Open</a>'; }
   else if (latest) { rb.className = 'banner amber'; rb.innerHTML = '🟡 Waiting for Doctor Review — submitted ' + fmtDT(latest.createdAt); }
   else rb.className = 'banner hidden';
   const fb = $('#followBanner');
-  const fu = STATE.timeline.find(tt => tt.type === 'followup' && tt.due && tt.due >= todayStr());
   if (fu) { fb.className = 'banner amber'; fb.innerHTML = '🔔 Follow-up: ' + esc(fu.title) + ' — due ' + fmtD(fu.due); } else fb.className = 'banner hidden';
   $('#medMini').innerHTML = active.slice(0, 4).map(m => '<li><span>' + esc(m.name) + ' <small class="muted">' + esc(m.dosage || '') + '</small></span>' + medChip(m) + '</li>').join('') || '<li class="muted">No medicines yet</li>';
-  $('#repMini').innerHTML = STATE.reports.slice(0, 4).map(r => '<li><span>' + esc(r.title) + '</span><small class="muted">' + fmtD(r.date) + '</small></li>').join('') || '<li class="muted">No reports yet</li>';
+  $('#repMini').innerHTML = STATE.reports.slice(0, 4).map(r => '<li><span>' + (r.fileData ? '📄 ' : '🧪 ') + esc(r.title) + '</span>' + docStatusChip(r) + '</li>').join('') || '<li class="muted">No reports yet</li>';
   const billMini = $('#billMini');
   if (billMini) { const tot = (STATE.bills || []).reduce((a, b) => a + Number(b.total || 0), 0); billMini.innerHTML = '<div class="krow"><span>Total billed</span><b>₹' + tot + '</b></div><div class="krow"><span>Pending</span><b>' + (STATE.bills || []).filter(b => b.status !== 'paid').length + '</b></div>'; }
   $('#nextApptCard').innerHTML = nextAppt ? (() => { const q = queueNumberOf(nextAppt); return '<div class="krow"><span>👨‍⚕️</span><b>' + esc(nextAppt.doctorName) + '</b></div><div class="krow"><span>🎟️ Queue</span><b>' + (q ? '#' + q : '—') + '</b></div><div class="krow"><span>📅 When</span><b>' + fmtD(nextAppt.date) + ' • ' + esc(nextAppt.time) + '</b></div><div class="krow"><span>🏥</span><b>' + esc(nextAppt.hospital || '') + '</b></div>'; })() : 'No upcoming appointments.';
@@ -563,38 +739,78 @@ function renderMyCase() {
   $('#secVisits').innerHTML = STATE.timeline.filter(tt => tt.type === 'case' || tt.type === 'consult').map(tt => '<li><span>' + (tt.icon || '🏥') + ' ' + esc(tt.title) + ' <small class="muted">' + esc(tt.description || '') + '</small></span><small class="muted">' + fmtD(tt.date) + '</small></li>').join('') || '<li class="muted">No visits yet</li>';
 }
 
-/* ----- MEDS / REPORTS ----- */
+/* ----- MEDS (view-only for patient) ----- */
 function renderMeds() {
   const el = $('#medList'); if (!el || ROLE !== 'patient') return;
-  el.innerHTML = STATE.meds.map(m => '<div class="list-item"><div class="li-main"><b>' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + ' • Start ' + fmtD(m.startDate) + (m.durationDays ? ' • ' + esc(m.durationDays) + ' days' : '') + ' • ' + esc(m.prescribedBy || '') + '</small></div><div class="li-actions">' + medChip(m) + '<button class="btn ghost sm" data-act="stop-med" data-id="' + m.id + '">' + (m.active === false ? 'Restart' : 'Stop') + '</button></div></div>').join('') || '<p class="muted">No medicines added yet.</p>';
+  el.innerHTML = STATE.meds.map(m => '<div class="list-item"><div class="li-main"><b>' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + ' • Start ' + fmtD(m.startDate) + (m.durationDays ? ' • ' + esc(m.durationDays) + ' days' : '') + ' • ' + esc(m.prescribedBy || '') + '</small></div><div class="li-actions">' + medChip(m) + '</div></div>').join('') || '<p class="muted">No medicines yet — your doctor will add and verify them.</p>';
 }
-document.addEventListener('click', async e => {
-  if (e.target.closest('[data-act="add-med"]')) {
-    const name = $('#mName').value.trim(); if (!name) return toast('⚠️ Medicine name is required.');
-    try {
-      await db.collection('medicines').add({ patientId: ME.id, name, dosage: $('#mDose').value.trim(), startDate: $('#mStart').value || todayStr(), durationDays: $('#mDur').value, prescribedBy: ME.name + ' (self-reported)', verified: false, source: 'patient', active: true, createdAt: Date.now() });
-      $('#mName').value = ''; $('#mDose').value = ''; $('#mDur').value = '';
-      toast('Added — 🔴 doctor verification pending');
-    } catch (err) { toast('⚠️ ' + errMsg(err)); }
+
+/* ----- REPORTS + DOCUMENT DIGITIZATION ----- */
+document.addEventListener('change', async e => {
+  if (!e.target || e.target.id !== 'docFile') return;
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (!file.type || !file.type.startsWith('image/')) { toast('⚠️ Please choose an image (JPG/PNG photo of the document).'); e.target.value = ''; return; }
+  toast('⏳ Processing document…');
+  try {
+    const dataUrl = await compressImage(file);
+    pendingDoc = dataUrl;
+    const det = autoDetectDoc(file.name);
+    $('#docPreviewImg').src = dataUrl;
+    $('#docPreview').classList.remove('hidden');
+    if (!$('#dTitle').value) $('#dTitle').value = det.title || (det.type + ' — ' + fmtD(todayStr()));
+    $('#dType').value = det.type;
+    if (det.date) { $('#dDate').value = det.date; if ($('#dDate')._dpSync) $('#dDate')._dpSync(); }
+    toast('✅ Ready — type & date auto-detected. Review and Save.');
+  } catch (err) {
+    toast('⚠️ ' + (err.message || 'Could not process the image.'));
+    e.target.value = ''; pendingDoc = null; $('#docPreview').classList.add('hidden');
   }
-  const sm = e.target.closest('[data-act="stop-med"]');
-  if (sm) { const m = STATE.meds.find(x => x.id === sm.dataset.id); if (m) { await db.collection('medicines').doc(m.id).update({ active: m.active === false }).catch(err => toast('⚠️ ' + errMsg(err))); toast('Updated ✅'); } }
 });
-function renderReports() {
-  const el = $('#repList'); if (!el || ROLE !== 'patient') return;
-  el.innerHTML = STATE.reports.map(r => '<div class="list-item"><div class="li-main"><b>' + esc(r.title) + '</b><small>' + esc(r.type) + ' • ' + fmtD(r.date) + ' • ' + esc(r.hospital || '') + (r.doctor ? ' • ' + esc(r.doctor) : '') + '</small></div><div class="li-actions">' + (r.verified ? '<span class="chip green">Verified ✓</span>' : '<span class="chip blue">🟦 Self-uploaded</span>') + '</div></div>').join('') || '<p class="muted">Vault is empty.</p>';
-}
 document.addEventListener('click', async e => {
+  if (e.target.closest('[data-act="save-doc"]')) {
+    if (!pendingDoc) return toast('⚠️ Choose a document photo first.');
+    const title = $('#dTitle').value.trim() || 'Scanned Document';
+    try {
+      await db.collection('reports').add({
+        patientId: ME.id, patientName: ME.name, healthId: ME.healthId,
+        title, type: $('#dType').value, date: $('#dDate').value || todayStr(),
+        hospital: $('#dHospital').value.trim(), doctor: $('#dDoctor').value.trim(), note: $('#dNote').value.trim(),
+        verified: false, uploadedBy: ME.name, uploadedByRole: 'patient',
+        fileData: pendingDoc, source: 'scan', createdAt: Date.now()
+      });
+      await db.collection('timeline').add({ patientId: ME.id, date: todayStr(), type: 'report', icon: '📄', title: 'Document digitized — ' + title, description: $('#dType').value, createdAt: Date.now() });
+      await notifyRole('doctor', '📄 New Document Digitized', ME.name + ' (' + ME.healthId + ') uploaded: ' + title + ' — ready for review before consultation.');
+      await notifyRole('hospital', '📄 Document Awaiting Verification', ME.name + ' uploaded: ' + title + '. Please verify.');
+      pendingDoc = null;
+      $('#docFile').value = ''; $('#docPreview').classList.add('hidden');
+      $('#dTitle').value = ''; $('#dHospital').value = ''; $('#dDoctor').value = ''; $('#dNote').value = '';
+      toast('✅ Document digitized & saved to vault — awaiting hospital verification 🟡');
+      renderReports(); renderPatientDash();
+    } catch (err) { toast('⚠️ ' + errMsg(err)); }
+    return;
+  }
   if (!e.target.closest('[data-act="add-report"]')) return;
   const tt = $('#rTitle').value.trim(); if (!tt) return toast('⚠️ Title is required.');
   try {
     await db.collection('reports').add({ patientId: ME.id, title: tt, type: $('#rType').value, date: $('#rDate').value || todayStr(), hospital: $('#rHospital').value.trim(), doctor: $('#rDoctor').value.trim(), note: $('#rNote').value.trim(), verified: false, uploadedBy: ME.name, uploadedByRole: 'patient', createdAt: Date.now() });
     await db.collection('timeline').add({ patientId: ME.id, date: todayStr(), type: 'report', icon: '🧪', title: tt, description: $('#rType').value, createdAt: Date.now() });
     $('#rTitle').value = ''; toast('Saved to vault ✅');
+    renderReports();
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
+function renderReports() {
+  const el = $('#repList'); if (!el || ROLE !== 'patient') return;
+  el.innerHTML = STATE.reports.map(r =>
+    '<div class="list-item"><div class="li-main" style="display:flex;align-items:center;gap:10px">' +
+    (r.fileData ? '<img src="' + r.fileData + '" class="doc-thumb" alt="">' : '<div class="doc-thumb" style="display:flex;align-items:center;justify-content:center">🧪</div>') +
+    '<div><b>' + esc(r.title) + '</b><small>' + esc(r.type) + ' • ' + fmtD(r.date) + ' • ' + esc(r.hospital || '') + (r.doctor ? ' • ' + esc(r.doctor) : '') + '</small></div></div>' +
+    '<div class="li-actions">' + docStatusChip(r) +
+    (r.fileData ? '<button class="btn ghost sm" data-act="view-doc" data-id="' + r.id + '">👁️ View</button>' : '') +
+    '</div></div>').join('') || '<p class="muted">Vault is empty — scan your first physical document above 📷.</p>';
+}
 
-/* ----- APPOINTMENTS (ACID double-booking protection) ----- */
+/* ----- APPOINTMENTS ----- */
 const SLOTS = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '04:00 PM', '04:30 PM', '05:00 PM'];
 function renderDoctorDropdown() {
   const d = $('#apDoctor'); if (!d) return;
@@ -835,7 +1051,9 @@ document.addEventListener('click', async e => {
   if (pb) { try { await db.collection('bills').doc(pb.dataset.id).update({ status: 'paid', paidAt: Date.now() }); toast('✅ Bill marked as paid'); } catch (err) { toast('⚠️ ' + errMsg(err)); } }
 });
 
-/* ----- HEALTH TRACKING ----- */
+/* ============================================================
+   HEALTH TRACKING — PATIENT VIEW (read-only; doctor enters)
+   ============================================================ */
 const TREND_COLORS = { temp: '#ea580c', bp: '#2563eb', hr: '#dc2626', wt: '#16a34a' };
 function parseBp(bp) { if (!bp) return null; const m = String(bp).match(/(\d+)\s*\/\s*(\d+)/); return m ? { s: +m[1], d: +m[2] } : null; }
 function num(v) { const n = Number(v); return isNaN(n) ? null : n; }
@@ -858,41 +1076,31 @@ function renderVitals() {
   const today = $('#vtToday'); if (today) today.textContent = '📅 ' + new Date().toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
   const lv = STATE.vitals[0] || null;
   const bp = lv ? parseBp(lv.bp) : null;
-  const sc = $('#statCards');
-  if (sc) sc.innerHTML = '<div class="stat-card stat-hr"><div class="st-name">❤️ Heart Rate</div><div class="st-val">' + (lv && num(lv.hr) != null ? num(lv.hr) : '—') + '</div><div class="st-unit">bpm</div></div><div class="stat-card stat-temp"><div class="st-name">🌡️ Temperature</div><div class="st-val">' + (lv && num(lv.temp) != null ? num(lv.temp) : '—') + '</div><div class="st-unit">°C</div></div><div class="stat-card stat-bp"><div class="st-name">🩸 Blood Pressure</div><div class="st-val">' + (bp ? bp.s + '/' + bp.d : '—') + '</div><div class="st-unit">mmHg</div></div><div class="stat-card stat-wt"><div class="st-name">⚖️ Weight</div><div class="st-val">' + (lv && num(lv.wt) != null ? num(lv.wt) : '—') + '</div><div class="st-unit">kg</div></div>';
+  const up = $('#ovUpdated');
+  if (up) up.textContent = lv ? ('Last updated: ' + fmtDT(lv.createdAt) + (lv.doctorName ? ' • by ' + lv.doctorName : '')) : 'No health data yet — your doctor will add it here.';
+  const rows = [
+    ['❤️', 'Blood Pressure', bp ? (bp.s + '/' + bp.d) : '—', 'mmHg'],
+    ['🌡️', 'Temperature', (lv && num(lv.temp) != null) ? num(lv.temp) : '—', '°F'],
+    ['💓', 'Heart Rate', (lv && num(lv.hr) != null) ? num(lv.hr) : '—', 'bpm'],
+    ['⚖️', 'Weight', (lv && num(lv.wt) != null) ? num(lv.wt) : '—', 'kg'],
+    ['📋', 'Symptoms', lv ? (lv.sym || '—') : '—', '']
+  ];
+  const or = $('#ovRows');
+  if (or) or.innerHTML = rows.map(([i, n, v, u]) => '<div class="ov-row"><span class="ov-ico">' + i + '</span><span class="ov-name">' + n + '</span><span class="ov-val">' + esc(v) + (u ? '<small>' + u + '</small>' : '') + '</span></div>').join('');
   const rc = $('#recentVitals');
-  if (rc) rc.innerHTML = STATE.vitals.slice(0, 6).map(v => { const p = parseBp(v.bp); const pain = num(v.pain);
-    return '<div class="list-item"><div class="li-main"><b>' + fmtD(v.date) + '</b><small>🌡️ ' + esc(v.temp || '—') + '°C • BP ' + (p ? p.s + '/' + p.d : '—') + ' • ❤️ ' + esc(v.hr || '—') + ' • ⚖️ ' + esc(v.wt || '—') + ' kg' + (v.sym ? ' • ' + esc(v.sym) : '') + '</small></div>' + (pain != null ? '<span class="chip ' + (pain <= 3 ? 'green' : pain <= 6 ? 'blue' : 'red') + '">' + pain + '/10 Pain</span>' : '') + '</div>'; }).join('') || '<p class="muted">No records yet.</p>';
+  if (rc) rc.innerHTML = STATE.vitals.slice(0, 6).map(v => { const p = parseBp(v.bp);
+    return '<div class="list-item"><div class="li-main"><b>' + fmtD(v.date) + '</b><small>🌡️ ' + esc(v.temp || '—') + '°F • BP ' + (p ? p.s + '/' + p.d : '—') + ' • ❤️ ' + esc(v.hr || '—') + ' bpm • ⚖️ ' + esc(v.wt || '—') + ' kg' + (v.sym ? ' • ' + esc(v.sym) : '') + '</small></div><small class="muted">' + esc(v.doctorName || '') + '</small></div>'; }).join('') || '<p class="muted">No records yet — your doctor will add them.</p>';
   const tg = $('#trendGrid');
   if (tg) {
-    const defs = [{ key: 'temp', name: '🌡️ Temperature', unit: '°C' }, { key: 'bp', name: '🩸 Blood Pressure', unit: 'mmHg' }, { key: 'hr', name: '❤️ Heart Rate', unit: 'bpm' }, { key: 'wt', name: '⚖️ Weight', unit: 'kg' }];
+    const defs = [
+      { key: 'temp', name: '🌡️ Temperature', unit: '°F' },
+      { key: 'bp', name: '🩸 Blood Pressure', unit: 'mmHg' },
+      { key: 'hr', name: '❤️ Heart Rate', unit: 'bpm' },
+      { key: 'wt', name: '⚖️ Weight', unit: 'kg' }
+    ];
     tg.innerHTML = defs.map(df => { const vals = seriesOf(df.key); return '<div class="trend-card"><div class="t-name">' + df.name + '</div><div class="t-val">' + (vals.length ? vals[vals.length - 1] : '—') + ' <small class="muted">' + df.unit + '</small></div>' + deltaHTML(vals, df.unit) + sparkSVG(vals, TREND_COLORS[df.key]) + '</div>'; }).join('');
   }
 }
-function buildPainRow() {
-  const row = $('#painRow'); if (!row || row.dataset.done) return; row.dataset.done = '1';
-  for (let i = 0; i <= 10; i++) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'pain-btn'; b.textContent = i;
-    b.onclick = () => { $$('.pain-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); selectedPain = i; };
-    row.appendChild(b);
-  }
-}
-buildPainRow();
-const symEl = $('#vSym');
-if (symEl) symEl.addEventListener('input', () => { $('#symCount').textContent = symEl.value.length; });
-document.addEventListener('click', async e => {
-  if (!e.target.closest('[data-act="add-vital"]')) return;
-  const temp = $('#vTemp').value, bp = $('#vBp').value.trim(), hr = $('#vHr').value, wt = $('#vWt').value, sym = $('#vSym').value.trim();
-  if (!temp && !bp && !hr && !wt && !sym && selectedPain === null) return toast('⚠️ Enter at least one measurement.');
-  if (bp && !parseBp(bp)) return toast('⚠️ BP format like 120/80');
-  try {
-    await db.collection('vitals').add({ patientId: ME.id, date: todayStr(), temp, bp, hr, wt, pain: selectedPain === null ? '' : selectedPain, sym, createdAt: Date.now() });
-    $('#vTemp').value = ''; $('#vHr').value = ''; $('#vWt').value = ''; $('#vBp').value = ''; $('#vSym').value = '';
-    $('#symCount').textContent = '0';
-    $$('.pain-btn').forEach(x => x.classList.remove('active')); selectedPain = null;
-    toast('Record saved ✅'); renderVitals();
-  } catch (err) { toast('⚠️ ' + errMsg(err)); }
-});
 
 /* ----- SEARCH / CHATBOT ----- */
  $('#topSearch').addEventListener('input', e => {
@@ -904,7 +1112,7 @@ document.addEventListener('click', async e => {
   let html = '';
   STATE.timeline.filter(tt => hit(tt.title) || hit(tt.description)).forEach(tt => html += '<div class="list-item"><div class="li-main"><b>' + (tt.icon || '•') + ' ' + esc(tt.title) + '</b><small>🕐 ' + esc(tt.description || '') + '</small></div><small class="muted">' + fmtD(tt.date) + '</small></div>');
   STATE.meds.filter(m => hit(m.name)).forEach(m => html += '<div class="list-item"><div class="li-main"><b>💊 ' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + '</small></div>' + medChip(m) + '</div>');
-  STATE.reports.filter(r => hit(r.title) || hit(r.type)).forEach(r => html += '<div class="list-item"><div class="li-main"><b>🧪 ' + esc(r.title) + '</b><small>' + esc(r.type) + '</small></div><small class="muted">' + fmtD(r.date) + '</small></div>');
+  STATE.reports.filter(r => hit(r.title) || hit(r.type)).forEach(r => html += '<div class="list-item"><div class="li-main"><b>' + (r.fileData ? '📄' : '🧪') + ' ' + esc(r.title) + '</b><small>' + esc(r.type) + '</small></div>' + docStatusChip(r) + '</div>');
   $('#searchResultsBody').innerHTML = html || '<p class="muted">No matches found.</p>';
 });
 document.addEventListener('click', e => {
@@ -922,9 +1130,10 @@ function chatbotAnswer(q) {
   if (q.includes('map') || q.includes('location') || q.includes('where is')) { const on = STATE.doctors.filter(isOnline); return on.length ? '🗺️ ' + on.length + ' doctor(s) ON DUTY. Open <b>My Doctors</b> → map at the bottom. You can also 📞 call them there.' : '🗺️ No doctors on duty right now.'; }
   if (q.includes('medicine') || q.includes('tablet')) { const m = STATE.meds.filter(x => x.active !== false); return m.length ? '💊 ' + m.map(x => '• <b>' + esc(x.name) + '</b> — ' + esc(x.dosage || '') + (x.verified ? ' ✅ ready to take' : ' 🔴 pending')).join('<br>') : '💊 No active medicines.'; }
   if (q.includes('surgery') || q.includes('operation')) { const s = (ME.surgeries || '').split('\n').filter(Boolean); return s.length ? '🔪 ' + s.map(x => '• ' + esc(x)).join('<br>') : '🔪 No surgeries recorded.'; }
-  if (q.includes('report')) return STATE.reports.length ? '🧪 ' + STATE.reports.slice(0, 6).map(r => '• ' + esc(r.title) + ' (' + fmtD(r.date) + ')').join('<br>') : '🧪 No reports yet.';
+  if (q.includes('report') || q.includes('document')) return STATE.reports.length ? '🧪 ' + STATE.reports.slice(0, 6).map(r => '• ' + esc(r.title) + ' (' + fmtD(r.date) + ')' + (r.fileData ? ' 📄' : '')).join('<br>') : '🧪 No reports yet — scan one from Reports 📷.';
   if (q.includes('bill') || q.includes('fee')) { const tot = (STATE.bills || []).reduce((a, b) => a + Number(b.total || 0), 0); return '💰 Total billed: ₹' + tot + ' • pending: ' + (STATE.bills || []).filter(b => b.status !== 'paid').length + '. Open Billing for details.'; }
   if (q.includes('blood')) return '🩸 <b>' + esc(ME.bloodGroup || 'not recorded') + '</b>';
+  if (q.includes('health') || q.includes('vital') || q.includes('bp')) { const lv = STATE.vitals[0]; return lv ? '🩺 Latest health record (' + fmtD(lv.date) + (lv.doctorName ? ', by ' + lv.doctorName : '') + '): BP ' + (lv.bp || '—') + ' • Temp ' + (lv.temp || '—') + '°F • HR ' + (lv.hr || '—') + ' • Weight ' + (lv.wt || '—') + ' kg.' : '🩺 No health records yet — your doctor will add them.'; }
   return '🤖 Try: "next appointment?", "queue number?", "active medicines?", "where is my doctor?", "reports?", "billing?". For medical advice consult your doctor.';
 }
 
@@ -956,7 +1165,7 @@ function sendChat() {
 }
 
 /* ============================================================
-   SETTINGS — FIXED & BULLETPROOF
+   SETTINGS
    ============================================================ */
 function photoBlockHTML() {
   const icon = ROLE === 'patient' ? '🧑' : ROLE === 'doctor' ? '👨‍⚕️' : '🏥';
@@ -1048,7 +1257,7 @@ function bindDoctor() {
   UNBINDS.push(db.collection('cases').where('status', '==', 'waiting').onSnapshot(s => { STATE.cases = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.createdAt - b.createdAt); renderDoctorCases(); renderDocDash(); }, console.error));
   UNBINDS.push(db.collection('cases').where('doctorId', '==', ME.id).onSnapshot(s => { STATE.myReviewed = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.reviewedAt || 0) - (a.reviewedAt || 0)); renderDoctorCases(); renderDocDash(); }, console.error));
   UNBINDS.push(db.collection('appointments').where('doctorId', '==', ME.id).onSnapshot(s => { STATE.appts = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.date || '').localeCompare(b.date || '')); renderDocAppts(); renderDocDash(); }, console.error));
-  UNBINDS.push(db.collection('users').where('role', '==', 'patient').onSnapshot(s => { STATE.patients = s.docs.map(d => ({ id: d.id, ...d.data() })); renderPatients(); renderDocDash(); renderVerifyMeds(); renderDChats(); }, console.error));
+  UNBINDS.push(db.collection('users').where('role', '==', 'patient').onSnapshot(s => { STATE.patients = s.docs.map(d => ({ id: d.id, ...d.data() })); renderPatients(); renderDocDash(); renderVerifyMeds(); renderDChats(); renderDocVitals(); }, console.error));
   UNBINDS.push(db.collection('medicines').where('verified', '==', false).onSnapshot(s => { STATE.unverifiedMeds = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderVerifyMeds(); renderDocDash(); }, console.error));
   UNBINDS.push(db.collection('bills').where('doctorId', '==', ME.id).onSnapshot(s => { STATE.myBills = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); renderDBilling(); renderDocDash(); }, console.error));
 }
@@ -1079,7 +1288,7 @@ function setDuty(on) {
   }
 }
 
-/* ----- DOCTOR DASHBOARD (doctor POV) ----- */
+/* ----- DOCTOR DASHBOARD ----- */
 function renderDocDash() {
   if (ROLE !== 'doctor') return;
   const today = todayStr();
@@ -1092,7 +1301,7 @@ function renderDocDash() {
   if (wc) wc.innerHTML = '<div class="doctor-line">' + avatarHTML(ME) +
     '<div><h3 style="margin:0">' + greet + ', Dr. ' + esc(ME.name) + ' 🩺</h3>' +
     '<small class="muted">' + esc(ME.specialization || '') + ' • ' + esc(ME.hospital || '') + ' • Reg: ' + esc(ME.regNo || '—') + '</small></div></div>' +
-    '<p class="muted sm-txt" style="margin-top:8px">Here is your day at a glance. Click any patient name to open their complete portal details.</p>';
+    '<p class="muted sm-txt" style="margin-top:8px">Here is your day at a glance. Click any patient name to open their complete portal details. Use <b>🩺 Health Input</b> to record patient vitals.</p>';
   const st = $('#ddStats');
   if (st) st.innerHTML = [
     ['mc-amber', '🟡', 'Your Waiting Cases', STATE.cases.length],
@@ -1152,6 +1361,65 @@ function renderDBilling() {
   if (list) list.innerHTML = bs.map(b => '<div class="list-item"><div class="li-main"><b>' + esc(b.patientName || '') + ' — ' + esc(b.type || 'bill') + ' ₹' + esc(b.total) + '</b><small>' + billItemsStr(b) + ' • ' + fmtDT(b.createdAt) + '</small></div><div class="li-actions">' + (b.status === 'paid' ? '<span class="chip ready">✓ Paid</span>' : '<span class="chip waiting">Pending</span>') + '</div></div>').join('') || '<p class="muted">No bills yet. Enter a Consultation Fee when reviewing a case — the bill appears here and in the patient portal in real time.</p>';
 }
 
+/* ============================================================
+   DOCTOR HEALTH INPUT
+   ============================================================ */
+function renderDocVitals() {
+  if (ROLE !== 'doctor') return;
+  const sel = $('#dvPatient'); if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = STATE.patients.map(p => '<option value="' + p.id + '">' + esc(p.name) + ' — ' + esc(p.healthId || '') + '</option>').join('') || '<option value="">No patients registered yet</option>';
+  if (cur) sel.value = cur;
+  const ad = $('#dvDate');
+  if (ad && !ad.value) ad.value = todayStr();
+  mountDatePickers($('#pg-d-vitals'));
+  updateDvDetails();
+}
+function updateDvDetails() {
+  const sel = $('#dvPatient'); if (!sel) return;
+  const p = STATE.patients.find(x => x.id === sel.value);
+  const dd = $('#dvDetails');
+  if (dd) dd.innerHTML = p ? kvRows([['Name', p.name], ['Age', ageOf(p.dob)], ['Gender', p.gender], ['Health ID', p.healthId], ['Blood Group', p.bloodGroup]]) : '<p class="muted">Select a patient to load details.</p>';
+  loadDvRecent();
+}
+async function loadDvRecent() {
+  const el = $('#dvRecent'); if (!el) return;
+  const sel = $('#dvPatient');
+  const pid = sel ? sel.value : '';
+  if (!pid) { el.innerHTML = '<p class="muted">No patient selected.</p>'; return; }
+  try {
+    const s = await db.collection('vitals').where('patientId', '==', pid).get();
+    const list = s.docs.map(d => d.data()).sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+    el.innerHTML = list.map(v => { const p = parseBp(v.bp);
+      return '<div class="list-item"><div class="li-main"><b>' + fmtD(v.date) + '</b><small>🌡️ ' + esc(v.temp || '—') + '°F • BP ' + (p ? p.s + '/' + p.d : '—') + ' • ❤️ ' + esc(v.hr || '—') + ' • ⚖️ ' + esc(v.wt || '—') + ' kg' + (v.sym ? ' • ' + esc(v.sym) : '') + '</small></div><small class="muted">' + esc(v.doctorName || 'Doctor') + '</small></div>'; }).join('') || '<p class="muted">No health records yet for this patient.</p>';
+  } catch (err) { el.innerHTML = '<p class="muted">Could not load records.</p>'; }
+}
+const dvSel = $('#dvPatient'); if (dvSel) dvSel.addEventListener('change', updateDvDetails);
+document.addEventListener('click', async e => {
+  if (!e.target.closest('[data-act="save-vitals"]')) return;
+  if (ROLE !== 'doctor') return;
+  const sel = $('#dvPatient');
+  const p = STATE.patients.find(x => x.id === (sel ? sel.value : ''));
+  if (!p) return toast('⚠️ Select a patient first.');
+  const bp = $('#dvBp').value.trim(), temp = $('#dvTemp').value.trim(), hr = $('#dvHr').value.trim(), wt = $('#dvWt').value.trim(), sym = $('#dvSym').value.trim();
+  if (!bp && !temp && !hr && !wt && !sym) return toast('⚠️ Enter at least one health value.');
+  if (bp && !parseBp(bp)) return toast('⚠️ BP format should be like 120/80');
+  try {
+    await db.collection('vitals').add({
+      patientId: p.id, patientName: p.name, healthId: p.healthId,
+      date: $('#dvDate').value || todayStr(),
+      temp, bp, hr, wt, sym,
+      enteredBy: 'doctor', doctorId: ME.id, doctorName: 'Dr. ' + ME.name,
+      createdAt: Date.now()
+    });
+    await logAccess(p.id, '👨‍⚕️ Dr. ' + ME.name + ' added a health record');
+    await notify(p.id, '🩺 New Health Record Added', 'Dr. ' + ME.name + ' updated your health data. Open Health Overview to view.');
+    $('#dvBp').value = ''; $('#dvTemp').value = ''; $('#dvHr').value = ''; $('#dvWt').value = ''; $('#dvSym').value = '';
+    toast('✅ Saved — the patient can see it on their portal now.');
+    loadDvRecent();
+  } catch (err) { toast('⚠️ ' + errMsg(err)); }
+});
+
 /* ----- CASE DETAIL (consent check) ----- */
 document.addEventListener('click', async e => {
   const oc = e.target.closest('[data-act="open-case"]'); if (!oc) return;
@@ -1178,11 +1446,17 @@ async function renderCaseDetail() {
   try { const ms = await db.collection('medicines').where('patientId', '==', c.patientId).get(); meds = ms.docs.map(d => d.data()); } catch (e) {}
   let lastV = null;
   try { const vit = await db.collection('vitals').where('patientId', '==', c.patientId).get(); lastV = vit.docs.map(d => d.data()).sort((a, b) => b.createdAt - a.createdAt)[0]; } catch (e) {}
-  $('#cdSummary').innerHTML = kvRows([['Age / Gender / Blood', ageOf(p.dob) + ' • ' + (p.gender || '—') + ' • ' + (p.bloodGroup || '—')], ['⚠️ Allergies', p.allergies || 'None recorded'], ['🏥 Chronic Conditions', p.conditions || 'None recorded'], ['🔪 Past Surgeries', (p.surgeries || 'None').split('\n')[0] || '—'], ['💊 Active Medicines', meds.filter(m => m.active !== false).map(m => m.name).join(', ') || '—'], ['📈 Last Vitals', lastV ? ((lastV.bp || '—') + ' BP • ' + (lastV.hr || '—') + ' hr • ' + (lastV.temp || '—') + '°C • pain ' + (lastV.pain || '—') + '/10') : '—'], ['🚗 Accidents', p.accidents || '—']]) + '<small class="muted">AI-generated from records — verify clinically. Not a diagnosis.</small>';
+  let docs = [];
+  try { const rs = await db.collection('reports').where('patientId', '==', c.patientId).get(); docs = rs.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt); } catch (e) {}
+  const fileDocs = docs.filter(d => d.fileData);
+  $('#cdSummary').innerHTML = kvRows([['Age / Gender / Blood', ageOf(p.dob) + ' • ' + (p.gender || '—') + ' • ' + (p.bloodGroup || '—')], ['⚠️ Allergies', p.allergies || 'None recorded'], ['🏥 Chronic Conditions', p.conditions || 'None recorded'], ['🔪 Past Surgeries', (p.surgeries || 'None').split('\n')[0] || '—'], ['💊 Active Medicines', meds.filter(m => m.active !== false).map(m => m.name).join(', ') || '—'], ['📎 Scanned Documents', fileDocs.length + ' uploaded (' + fileDocs.filter(d => d.verified).length + ' verified)'], ['📈 Latest Vitals (doctor-entered)', lastV ? ((lastV.bp || '—') + ' BP • ' + (lastV.temp || '—') + '°F • ' + (lastV.hr || '—') + ' hr • ' + (lastV.wt || '—') + ' kg' + (lastV.sym ? ' • ' + lastV.sym : '')) : '—'], ['🚗 Accidents', p.accidents || '—']]) + '<small class="muted">AI-generated from records — verify clinically. Not a diagnosis.</small>';
   $('#cdBlue').innerHTML = kvRows([['1️⃣ Chief Complaint', c.chiefComplaint], ['2️⃣ Symptoms', c.symptoms], ['🧍 Area', c.area], ['3️⃣ Duration', c.duration], ['Severity', c.severity], ['4️⃣ Previous Treatment', c.prevTreatment], ['5️⃣ Existing', c.existing], ['6️⃣ Current Meds', c.currentMeds], ['7️⃣ Allergies', c.allergyNote], ['8️⃣ Surgeries', c.surgeryNote], ['9️⃣ Family', c.familyHistory], ['🔟 Other', c.other]]);
   if (c.status === 'reviewed') { $('#cdNotes').value = c.doctorNotes || ''; $('#cdObs').value = c.observations || ''; $('#cdTests').value = c.tests || ''; $('#cdFollow').value = c.followupDays || ''; $('#cdFee').value = c.fee || ''; }
   else { $('#cdNotes').value = ''; $('#cdObs').value = ''; $('#cdTests').value = ''; $('#cdFollow').value = ''; $('#cdFee').value = ''; }
   $('#prescRows').innerHTML = prescRowHTML();
+  $('#cdDocs').innerHTML = fileDocs.length ? fileDocs.map(d =>
+    '<div class="doc-thumb-item" data-act="view-doc" data-id="' + d.id + '"><img src="' + d.fileData + '" alt=""><small>' + esc(d.title || d.type) + '</small>' + docStatusChip(d) + '</div>').join('') :
+    '<p class="muted">No scanned documents uploaded by this patient yet.</p>';
   $('#cdMedVerify').innerHTML = meds.map(m => '<div class="list-item"><div class="li-main"><b>' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + ' • by ' + esc(m.prescribedBy || '') + '</small></div><div class="li-actions">' + (m.verified ? '<span class="chip ready">🟩 Verified ✓ ' + esc(m.verifiedBy || '') + '</span>' : '<button class="btn verify-red sm" data-act="verify-med" data-id="' + m.id + '" data-pid="' + c.patientId + '" data-name="' + esc(m.name) + '">🔴 PENDING — VERIFY ✓</button>') + '</div></div>').join('') || '<p class="muted">No medicines.</p>';
 }
 function prescRowHTML() { return '<div class="presc-row"><input class="input p-name" placeholder="Medicine"><input class="input p-dose" placeholder="Dose/instructions"><input class="input p-days" placeholder="Days"><input class="input p-inst" placeholder="Before/after food…"></div>'; }
@@ -1249,6 +1523,8 @@ document.addEventListener('click', e => {
   if (vp) openPatientProfile(vp.dataset.id);
   const hd = e.target.closest('[data-act="h-view-doctor"]');
   if (hd) openDoctorProfile(hd.dataset.id);
+  const vd = e.target.closest('[data-act="view-doc"]');
+  if (vd) openDocViewer(vd.dataset.id);
 });
 async function openPatientProfile(pid) {
   let p = STATE.patients.find(x => x.id === pid);
@@ -1268,10 +1544,11 @@ async function openPatientProfile(pid) {
   $('#modalCard').innerHTML =
     '<div class="doctor-line" style="margin-bottom:10px">' + avatarHTML(p) + '<div><h3 style="margin:0">' + esc(p.name) + ' <span class="chip blue">' + esc(p.healthId || '') + '</span></h3><small class="muted">' + ageOf(p.dob) + ' • ' + esc(p.gender || '') + ' • 🩸 ' + esc(p.bloodGroup || '—') + (tel ? ' • <a href="' + tel + '">📞 ' + esc(p.phone || '') + '</a>' : '') + '</small></div></div>' +
     '<h4>📝 Registration Details (everything the patient filled)</h4><div class="kv">' + kvRows([['Full Name', p.name], ['Date of Birth', fmtD(p.dob) + ' (' + ageOf(p.dob) + ')'], ['Gender', p.gender], ['Blood Group', p.bloodGroup], ['Phone', p.phone], ['Email', p.email], ['Address', p.address], ['Aadhaar (masked)', maskAadhaar(p.aadhaar)], ['Emergency Contact', (p.emergencyName || '—') + ' ' + (p.emergencyPhone || '')], ['Height / Weight', (p.heightCm || '—') + ' cm • ' + (p.weightKg || '—') + ' kg'], ['⚠️ Allergies', p.allergies || 'None'], ['🏥 Existing Conditions', p.conditions || 'None'], ['🔪 Surgeries', p.surgeries || 'None'], ['🚗 Accidents', p.accidents || 'None'], ['👨‍👩‍👦 Family History', p.familyHistory || 'None'], ['💰 Annual Income', p.income ? '₹' + p.income : '—']]) + '</div>' +
+    '<h4 style="margin-top:12px">🩺 Latest Health Record (doctor-entered)</h4><div class="kv">' + kvRows(lv ? [['Date', fmtD(lv.date) + ' • by ' + (lv.doctorName || 'Doctor')], ['BP', bp ? bp.s + '/' + bp.d : '—'], ['Temperature', (lv.temp || '—') + ' °F'], ['Heart Rate', (lv.hr || '—') + ' bpm'], ['Weight', (lv.wt || '—') + ' kg'], ['Symptoms', lv.sym || '—']] : [['Status', 'No health records yet']]) + '</div>' +
     '<h4 style="margin-top:12px">💊 Medicines (' + meds.length + ')</h4>' + (meds.length ? '<div class="kv">' + meds.slice(0, 8).map(m => '<div class="krow"><span>' + esc(m.name) + ' <small class="muted">' + esc(m.dosage || '') + '</small></span>' + medChip(m) + '</div>').join('') + '</div>' : '<p class="muted">None</p>') +
     '<h4 style="margin-top:12px">📋 Cases (' + cases.length + ')</h4>' + (cases.length ? '<div class="kv">' + cases.slice(0, 6).map(c => '<div class="krow"><span>' + esc(c.chiefComplaint) + ' <small class="muted">' + fmtDT(c.createdAt) + '</small></span><b>' + (c.status === 'reviewed' ? '🟩 Dr. ' + esc(c.doctorName || '') : '🟡 waiting') + '</b></div>').join('') + '</div>' : '<p class="muted">None</p>') +
-    '<h4 style="margin-top:12px">🧪 Reports (' + reports.length + ')</h4>' + (reports.length ? '<div class="kv">' + reports.slice(0, 5).map(r => '<div class="krow"><span>' + esc(r.title) + '</span><small>' + esc(r.type) + ' • ' + fmtD(r.date) + '</small></div>').join('') + '</div>' : '<p class="muted">None</p>') +
-    '<h4 style="margin-top:12px">📈 Last Vitals</h4><div class="kv">' + kvRows(lv ? [['Date', fmtD(lv.date)], ['Temperature', (lv.temp || '—') + ' °C'], ['BP', bp ? bp.s + '/' + bp.d : '—'], ['Heart Rate', (lv.hr || '—') + ' bpm'], ['Weight', (lv.wt || '—') + ' kg'], ['Pain', (lv.pain || '—') + '/10'], ['Symptoms', lv.sym || '—']] : [['Status', 'No vitals recorded']]) + '</div>' +
+    '<h4 style="margin-top:12px">📎 Digitized Documents (' + reports.filter(r => r.fileData).length + ')</h4>' + (reports.filter(r => r.fileData).length ? '<div class="doc-thumbs">' + reports.filter(r => r.fileData).slice(0, 6).map(r => '<div class="doc-thumb-item"><img src="' + r.fileData + '" alt=""><small>' + esc(r.title || r.type) + '</small>' + docStatusChip(r) + '</div>').join('') + '</div>' : '<p class="muted">None</p>') +
+    '<h4 style="margin-top:12px">🧪 Other Records (' + reports.filter(r => !r.fileData).length + ')</h4>' + (reports.filter(r => !r.fileData).length ? '<div class="kv">' + reports.filter(r => !r.fileData).slice(0, 5).map(r => '<div class="krow"><span>' + esc(r.title) + '</span><small>' + esc(r.type) + ' • ' + fmtD(r.date) + '</small></div>').join('') + '</div>' : '<p class="muted">None</p>') +
     '<h4 style="margin-top:12px">💰 Billing (₹' + billTot + ' total)</h4>' + (bills.length ? '<div class="kv">' + bills.slice(0, 5).map(b => '<div class="krow"><span>' + esc(b.type) + ' — ' + billItemsStr(b) + '</span><b>' + (b.status === 'paid' ? '✓ Paid' : 'Pending') + '</b></div>').join('') + '</div>' : '<p class="muted">None</p>') +
     '<small class="muted">🔐 This view has been logged in the patient\'s audit trail.</small>' + modalCloseBtn();
 }
@@ -1301,18 +1578,19 @@ function bindHospital() {
     if (inFlight) { queued = true; return; }
     inFlight = true;
     try {
-      const [as, cs, ms, bs, ds, ps] = await Promise.all([
+      const [as, cs, ms, bs, rs, ds, ps] = await Promise.all([
         db.collection('appointments').get(), db.collection('cases').get(), db.collection('medicines').get(),
-        db.collection('bills').get(),
+        db.collection('bills').get(), db.collection('reports').get(),
         db.collection('users').where('role', '==', 'doctor').get(), db.collection('users').where('role', '==', 'patient').get()
       ]);
       STATE.appts = as.docs.map(x => ({ id: x.id, ...x.data() }));
       STATE.allCases = cs.docs.map(x => ({ id: x.id, ...x.data() })).sort((a, b) => b.createdAt - a.createdAt);
       STATE.medsAll = ms.docs.map(x => ({ id: x.id, ...x.data() })).sort((a, b) => b.createdAt - a.createdAt);
       STATE.billsAll = bs.docs.map(x => ({ id: x.id, ...x.data() })).sort((a, b) => b.createdAt - a.createdAt);
+      STATE.reportsAll = rs.docs.map(x => ({ id: x.id, ...x.data() })).sort((a, b) => b.createdAt - a.createdAt);
       STATE.doctors = ds.docs.map(x => ({ id: x.id, ...x.data() }));
       STATE.patients = ps.docs.map(x => ({ id: x.id, ...x.data() }));
-      renderHospital(); renderHPatients(); renderHDoctors(); renderHCases(); renderHMeds(); renderHAppts(); renderHBilling();
+      renderHospital(); renderHPatients(); renderHDoctors(); renderHCases(); renderHMeds(); renderHDocs(); renderHAppts(); renderHBilling();
     } catch (e) { console.error(e); }
     inFlight = false;
     if (queued) { queued = false; refresh(); }
@@ -1321,6 +1599,7 @@ function bindHospital() {
   UNBINDS.push(db.collection('cases').onSnapshot(refresh, console.error));
   UNBINDS.push(db.collection('medicines').onSnapshot(refresh, console.error));
   UNBINDS.push(db.collection('bills').onSnapshot(refresh, console.error));
+  UNBINDS.push(db.collection('reports').onSnapshot(refresh, console.error));
   UNBINDS.push(db.collection('users').onSnapshot(refresh, console.error));
   refresh();
 }
@@ -1328,13 +1607,14 @@ function tableHTML(headers, rows) {
   if (!rows.length) return '<p class="muted">No records yet.</p>';
   return '<div style="overflow-x:auto"><table><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>' + rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</table></div>';
 }
-/* ----- HOSPITAL DASHBOARD ----- */
 function renderHospital() {
   if (ROLE !== 'hospital') return;
   const today = todayStr();
+  const unDocs = (STATE.reportsAll || []).filter(r => r.fileData && !r.verified).length;
   $('#hhStats').innerHTML = [['👥 Patients', STATE.patients.length], ['👨‍⚕️ Doctors', STATE.doctors.length], ['📅 Today\'s Appointments', STATE.appts.filter(a => a.date === today).length]].map(([k, v]) => '<div class="card center"><h4>' + k + '</h4><p style="font-size:30px;font-weight:800;color:var(--primary)">' + v + '</p></div>').join('');
   const todayRows = STATE.appts.filter(a => a.date === today).map(a => [esc(a.patientName), esc(a.doctorName), esc(a.time), esc(a.type || ''), '<span class="chip ' + (a.status === 'upcoming' ? 'blue' : 'green') + '">' + esc(a.status) + '</span>']);
-  $('#hhQueue').innerHTML = tableHTML(['Patient', 'Doctor', 'Time', 'Type', 'Status'], todayRows);
+  $('#hhQueue').innerHTML = tableHTML(['Patient', 'Doctor', 'Time', 'Type', 'Status'], todayRows) +
+    (unDocs ? '<p class="hint" style="margin-top:8px">📄 ' + unDocs + ' patient document(s) awaiting your verification — open <b>Verify Documents</b>.</p>' : '');
 }
 function renderHAppts() {
   if (ROLE !== 'hospital') return;
@@ -1370,6 +1650,37 @@ function renderHMeds() {
   });
   $('#hMedTable').innerHTML = tableHTML(['Medicine', 'Patient', 'Dosage', 'Source', 'Verification', 'Added'], rows);
 }
+/* ----- DOCUMENT VERIFICATION (hospital) ----- */
+function renderHDocs() {
+  if (ROLE !== 'hospital') return;
+  const el = $('#hDocList'); if (!el) return;
+  const docs = (STATE.reportsAll || []).filter(r => r.fileData);
+  el.innerHTML = docs.map(r => {
+    const p = STATE.patients.find(x => x.id === r.patientId) || {};
+    return '<div class="list-item"><div class="li-main doctor-line"><img src="' + r.fileData + '" class="doc-thumb" data-act="view-doc" data-id="' + r.id + '" style="cursor:pointer">' +
+      '<div><b>' + esc(r.title || r.type) + ' <span class="chip blue">' + esc(p.healthId || '') + '</span></b><br><small class="muted">Patient: ' + esc(p.name || 'Unknown') + ' • ' + esc(r.type) + ' • ' + fmtD(r.date) + ' • uploaded ' + fmtDT(r.createdAt) + '</small></div></div>' +
+      '<div class="li-actions">' + docStatusChip(r) +
+      '<button class="btn ghost sm" data-act="view-doc" data-id="' + r.id + '">👁️ View</button>' +
+      (!r.verified ? '<button class="btn primary sm" data-act="h-verify-doc" data-id="' + r.id + '">✅ Verify</button>' : '') +
+      '</div></div>';
+  }).join('') || '<p class="muted">No scanned documents yet — patients upload them from the Reports 📷 page, and they appear here in real time.</p>';
+}
+document.addEventListener('click', async e => {
+  const hv = e.target.closest('[data-act="h-verify-doc"]');
+  if (hv) {
+    try {
+      const s = await db.collection('reports').doc(hv.dataset.id).get();
+      if (!s.exists) return toast('⚠️ Document not found.');
+      const r = s.data();
+      await db.collection('reports').doc(hv.dataset.id).update({ verified: true, verifiedBy: ME.name, verifiedAt: Date.now() });
+      await logAccess(r.patientId, '🏥 ' + ME.name + ' verified document: ' + (r.title || ''));
+      await notify(r.patientId, '🟩 Document Verified', (r.title || 'Your document') + ' has been verified by ' + ME.name + ' and is now part of your trusted record.');
+      closeModal();
+      renderHDocs();
+      toast('🟩 Document verified — visible to doctors as trusted.');
+    } catch (err) { toast('⚠️ ' + errMsg(err)); }
+  }
+});
 /* ----- BILLING: HOSPITAL ----- */
 function renderHBilling() {
   if (ROLE !== 'hospital') return;
