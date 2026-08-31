@@ -101,7 +101,7 @@
               <div><label class="label">Annual Income (₹)</label><input id="rpIncome" type="number" class="input"></div>
               <div><label class="label">Language</label><select id="rpLang" class="input"><option>English</option><option>Hindi</option></select></div>
             </div>
-            <label class="label">Email *</label><input id="rpEmail" type="email" class="input">
+<label class="label">Email *</label><input id="rpEmail" type="email" class="input">
             <label class="label">Password *</label><input id="rpPass" type="password" class="input" placeholder="min 6 characters">
             <button type="button" class="btn ghost sm" data-act="demo-fill">✨ Try Demo (fill sample data)</button>
             <button class="btn primary big" type="submit">Create Health ID 🆔</button>
@@ -220,7 +220,7 @@
             <button class="quick-btn" data-nav="p-qr">📱<span>My QR</span></button>
           </div>
         </div>
-        <div class="card"><h4>📊 Care Status</h4><div id="careBars"></div></div>
+<div class="card"><h4>📊 Care Status</h4><div id="careBars"></div></div>
         <div class="grid3">
           <div class="card"><h4>💊 Active Medicines</h4><ul id="medMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-meds">All Medicines →</button></div>
           <div class="card"><h4>🧪 Recent Results</h4><ul id="repMini" class="mini-list"></ul><button class="btn ghost sm" data-nav="p-results">All Results →</button></div>
@@ -337,8 +337,7 @@
         </div>
         <div id="apList" class="list"></div>
       </section>
-
-      <!-- PATIENT DOCTORS + MAP -->
+<!-- PATIENT DOCTORS + MAP -->
       <section id="pg-p-doctors" class="page hidden">
         <h3>👨‍⚕️ My Doctors</h3>
         <p class="muted">Message, call or locate your doctor — 🟢 = on duty with live location.</p>
@@ -487,8 +486,7 @@
         </div>
         <div id="dcList" class="list"></div>
       </section>
-
-      <!-- DOCTOR VERIFICATION -->
+<!-- DOCTOR VERIFICATION -->
       <section id="pg-d-verify" class="page hidden">
         <h3>💊 Medicine Verification Center</h3>
         <p class="muted">Patient-reported medicines (🟦) become 🟩 <b>Verified — Ready to take ✓</b> only after your confirmation. The patient's portal updates instantly.</p>
@@ -562,8 +560,7 @@
         <input id="hPatSearch" class="input" placeholder="Search patient by name or Health ID…">
         <div id="hPatList" class="list"></div>
       </section>
-
-      <section id="pg-h-doctors" class="page hidden">
+<section id="pg-h-doctors" class="page hidden">
         <h3>👨‍⚕️ All Doctors — Full Records</h3>
         <div id="hDocTable"></div>
       </section>
@@ -615,14 +612,14 @@
         <h3>🧪 Upload Result for Patient</h3>
         <p class="muted">Uploaded results appear instantly on the patient's <b>Results</b> page and can include a photo of the physical document.</p>
         <div class="card">
-          <label class="label">Patient Health ID (MHD-XXXXXX)</label><input id="huHid" class="input">
+          <label class="label">Select Patient *</label><select id="huHid" class="input"></select>
           <div class="row3">
             <input id="huTitle" class="input" placeholder="Result title e.g. CBC Blood Test">
             <select id="huType" class="input"><option>Lab Report</option><option>X-ray</option><option>CT / MRI</option><option>Scan</option><option>Prescription</option><option>Discharge Summary</option><option>Other Document</option></select>
             <input id="huDate" type="date" class="input">
           </div>
           <div class="row3">
-            <input id="huDoctor" class="input" placeholder="Doctor">
+            <select id="huDoctor" class="input"></select>
             <input id="huNote" class="input" placeholder="Note / summary of the result">
             <span></span>
           </div>
