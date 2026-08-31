@@ -1,10 +1,11 @@
 /* ============================================================
-   MHD HOSPITAL v16 — My Health Defense Hospital 24×7
-   v16: patient self-add medicines • hospital date-wise
-   appointments • 66-QA chatbot • patient Results (view-only)
-   • result detail viewer • patient menu slim (no settings/
-   notifs — via top icons) • quick profile card • bell with
-   New/Read columns + auto-read • bug fixes
+   MHD HOSPITAL v16.1 — My Health Defense Hospital 24×7
+   v16.1 changes (only these):
+   • Timeline entries now show TIME (🕒) beside the date
+   • "All My Cases" → 👁️ View Details button on every case
+     (opens full case: patient answers + doctor review)
+   • Upload Result → Patient dropdown + Doctor dropdown
+   • micro-fix: chatbot "blood group" answer placeholder
    ============================================================ */
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -386,11 +387,11 @@ auth.onAuthStateChanged(async user => {
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
 
-/* ---------- NAV (patient menu: no Settings / Notifications) ---------- */
+/* ---------- NAV ---------- */
 const MENUS = {
   patient: [['p-dash', '🏠', 'dashboard'], ['p-upcoming', '🗓️', 'upcoming'], ['p-case', '📋', 'mycase'], ['p-meds', '💊', 'meds'], ['p-results', '🧪', 'results'], ['p-appts', '📅', 'appts'], ['p-doctors', '👨‍⚕️', 'doctors'], ['p-timeline', '🕐', 'timeline'], ['p-vitals', '🩺', 'tracking'], ['p-qr', '📱', 'qr'], ['p-privacy', '🔒', 'privacy'], ['p-billing', '💰', 'billing'], ['EMERGENCY', '🚑', 'emergency']],
-  doctor: [['d-dash', '🏠', 'dashboard'], ['d-vitals', '🩺', 'healthinput'], ['d-cases', '📋', 'cases'], ['d-verify', '💊', 'verify'], ['d-chats', '💬', 'chats'], ['d-patients', '🔍', 'patients'], ['d-appts', '📅', 'dappts'], ['d-billing', '💰', 'earnings'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings']],
-  hospital: [['h-dash', '🏥', 'hdash'], ['h-patients', '👥', 'hpatients'], ['h-doctors', '👨‍⚕️', 'hdoctors'], ['h-cases', '📋', 'hcases'], ['h-meds', '💊', 'hmeds'], ['h-docs', '📄', 'hdocs'], ['h-appts', '📅', 'happts'], ['h-billing', '💰', 'billing'], ['h-upload', '🧪', 'hupload'], ['p-notifs', '🔔', 'notifs'], ['p-settings', '⚙️', 'settings']]
+  doctor: [['d-dash', '🏠', 'dashboard'], ['d-vitals', '🩺', 'healthinput'], ['d-cases', '📋', 'cases'], ['d-verify', '💊', 'verify'], ['d-chats', '💬', 'chats'], ['d-patients', '🔍', 'patients'], ['d-appts', '📅', 'dappts'], ['d-billing', '💰', 'earnings']],
+  hospital: [['h-dash', '🏥', 'hdash'], ['h-patients', '👥', 'hpatients'], ['h-doctors', '👨‍⚕️', 'hdoctors'], ['h-cases', '📋', 'hcases'], ['h-meds', '💊', 'hmeds'], ['h-docs', '📄', 'hdocs'], ['h-appts', '📅', 'happts'], ['h-billing', '💰', 'billing'], ['h-upload', '🧪', 'hupload']]
 };
 const TKEY = { 'p-dash': 'dashboard', 'p-upcoming': 'upcoming', 'p-case': 'mycase', 'p-meds': 'meds', 'p-results': 'results', 'p-appts': 'appts', 'p-doctors': 'doctors', 'p-timeline': 'timeline', 'p-vitals': 'tracking', 'p-qr': 'qr', 'p-privacy': 'privacy', 'p-billing': 'billing', 'p-notifs': 'notifs', 'p-settings': 'settings', 'd-dash': 'dashboard', 'd-vitals': 'healthinput', 'd-cases': 'cases', 'd-verify': 'verify', 'd-chats': 'chats', 'd-case': 'cases', 'd-patients': 'patients', 'd-appts': 'dappts', 'd-billing': 'earnings', 'h-dash': 'hdash', 'h-patients': 'hpatients', 'h-doctors': 'hdoctors', 'h-cases': 'hcases', 'h-meds': 'hmeds', 'h-docs': 'hdocs', 'h-appts': 'happts', 'h-upload': 'hupload', 'h-billing': 'billing' };
 function homeId() { return ROLE === 'patient' ? 'p-dash' : ROLE === 'doctor' ? 'd-dash' : 'h-dash'; }
@@ -436,7 +437,7 @@ function go(id, opts) {
     'p-notifs': () => renderNotifPage(),
     'p-settings': () => renderSettings(),
     'd-dash': () => renderDocDash(), 'd-vitals': () => renderDocVitals(), 'd-cases': () => renderDoctorCases(), 'd-verify': () => renderVerifyMeds(), 'd-chats': () => renderDChats(), 'd-patients': () => renderPatients(), 'd-appts': () => renderDocAppts(), 'd-billing': () => renderDBilling(),
-    'h-dash': () => renderHospital(), 'h-patients': () => renderHPatients(), 'h-doctors': () => renderHDoctors(), 'h-cases': () => renderHCases(), 'h-meds': () => renderHMeds(), 'h-docs': () => renderHDocs(), 'h-appts': () => renderHAppts(), 'h-billing': () => renderHBilling()
+    'h-dash': () => renderHospital(), 'h-patients': () => renderHPatients(), 'h-doctors': () => renderHDoctors(), 'h-cases': () => renderHCases(), 'h-meds': () => renderHMeds(), 'h-docs': () => renderHDocs(), 'h-appts': () => renderHAppts(), 'h-billing': () => renderHBilling(), 'h-upload': () => fillUploadDropdowns()
   };
   if (hooks[id]) { try { hooks[id](); } catch (e) { console.error(e); toast('⚠️ Render error: ' + e.message); } }
 }
@@ -447,7 +448,6 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-act="nav-home"]')) navHome();
   if (e.target.closest('[data-act="burger"]')) $('#sidebar').classList.toggle('open');
   if (e.target.closest('[data-act="logout"]')) doLogout();
-  // 👤 quick profile card (top-right)
   if (e.target.closest('[data-act="profile-quick"]')) openQuickProfile();
 });
 
@@ -491,7 +491,21 @@ function openQuickProfile() {
 }
 
 /* ============ NOTIFICATIONS (New/Read columns + auto-read) ============ */
-function notifItem(n) { return '<div class="list-item"><div class="li-main"><b>' + esc(n.title) + '</b><small>' + esc(n.body) + ' • ' + fmtDT(n.createdAt) + '</small></div></div>'; }
+function notifTargetFromText(title, body) {
+  const text = ((title || '') + ' ' + (body || '')).toLowerCase();
+  if (text.includes('appointment') || text.includes('queue')) return ROLE === 'doctor' ? 'd-appts' : 'p-appts';
+  if (text.includes('case')) return ROLE === 'doctor' ? 'd-cases' : 'p-case';
+  if (text.includes('medicine')) return ROLE === 'doctor' ? 'd-verify' : 'p-meds';
+  if (text.includes('result') || text.includes('report')) return ROLE === 'doctor' ? 'd-chats' : 'p-results';
+  if (text.includes('bill') || text.includes('billing') || text.includes('payment')) return ROLE === 'doctor' ? 'd-billing' : 'p-billing';
+  if (text.includes('health record') || text.includes('vital')) return ROLE === 'doctor' ? 'd-vitals' : 'p-vitals';
+  if (text.includes('privacy') || text.includes('consent')) return 'p-privacy';
+  return null;
+}
+function notifItem(n) {
+  const target = n.navTarget || notifTargetFromText(n.title, n.body);
+  return '<button type="button" class="notif-row" data-act="open-notif" data-id="' + n.id + '" data-target="' + esc(target || '') + '"><div class="li-main"><b>' + esc(n.title) + '</b><small>' + esc(n.body) + ' • ' + fmtDT(n.createdAt) + '</small></div><span class="chip blue">Open</span></button>';
+}
 function renderNotifDrop() {
   const news = STATE.notifs.filter(n => !n.read), read = STATE.notifs.filter(n => n.read);
   const sec = (title, arr, empty) => '<h4 style="padding:4px 6px 0">' + title + ' (' + arr.length + ')</h4>' + (arr.slice(0, 8).map(notifItem).join('') || '<p class="muted" style="padding:0 6px">' + empty + '</p>');
@@ -504,7 +518,7 @@ function renderNotifPage() {
   if (nEl) nEl.innerHTML = news.map(notifItem).join('') || '<p class="muted">All caught up — no new notifications 🎉</p>';
   if (rEl) rEl.innerHTML = read.map(notifItem).join('') || '<p class="muted">No read notifications yet.</p>';
 }
-function notify(to, title, body) { return db.collection('notifications').add({ to, title, body, read: false, createdAt: Date.now() }); }
+function notify(to, title, body, navTarget) { return db.collection('notifications').add({ to, title, body, navTarget: navTarget || notifTargetFromText(title, body) || null, read: false, createdAt: Date.now() }); }
 function notifyRole(role, title, body) { return notify('role:' + role, title, body); }
 function bindNotifs() {
   UNBINDS.push(db.collection('notifications').where('to', 'in', [ME.id, 'role:' + ROLE]).onSnapshot(snap => {
@@ -521,7 +535,6 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-act="bell"]')) {
     const drop = $('#bellDrop');
     drop.classList.toggle('hidden');
-    // Opening the bell clears the red dot (marks everything as read)
     if (!drop.classList.contains('hidden')) {
       const unread = STATE.notifs.filter(n => !n.read);
       if (unread.length) {
@@ -532,7 +545,16 @@ document.addEventListener('click', e => {
     return;
   }
   if (!e.target.closest('.bell-drop') && !e.target.closest('.bell')) $('#bellDrop').classList.add('hidden');
-  if (e.target.closest('[data-act="go-notifs"]')) { $('#bellDrop').classList.add('hidden'); go('p-notifs'); }
+  const on = e.target.closest('[data-act="open-notif"]');
+  if (on) {
+    const n = STATE.notifs.find(x => x.id === on.dataset.id);
+    if (n && !n.read) db.collection('notifications').doc(n.id).update({ read: true }).catch(() => {});
+    $('#bellDrop').classList.add('hidden');
+    const target = (n && (n.navTarget || notifTargetFromText(n.title, n.body))) || on.dataset.target;
+    if (target) go(target); else if (ROLE === 'patient') go('p-notifs'); else if (ROLE === 'doctor') go('d-dash'); else go('h-dash');
+    return;
+  }
+  if (e.target.closest('[data-act="go-notifs"]')) { $('#bellDrop').classList.add('hidden'); if (ROLE === 'patient') go('p-notifs'); else if (ROLE === 'doctor') go('d-dash'); else go('h-dash'); }
   if (e.target.closest('[data-act="mark-read"]')) { STATE.notifs.filter(n => !n.read).forEach(n => db.collection('notifications').doc(n.id).update({ read: true }).catch(() => {})); toast('All marked read ✅'); }
 });
 function logAccess(patientId, action) { return db.collection('accessLog').add({ patientId, actorName: (ROLE === 'doctor' ? 'Dr. ' : '') + ME.name, actorRole: ROLE, action, createdAt: Date.now() }).catch(() => {}); }
@@ -709,7 +731,7 @@ function renderMyCase() {
     (c.status === 'reviewed' ? '<div class="krow"><span>🟩 Clinical Notes</span><b>' + esc(c.doctorNotes || '—') + '</b></div><div class="krow"><span>🟩 Prescription</span><b>' + esc(c.prescriptionText || '—') + '</b></div><div class="krow"><span>🟩 Tests</span><b>' + esc(c.tests || '—') + '</b></div><div class="krow"><span>🟩 Follow-up</span><b>' + (c.followupDays ? 'after ' + esc(c.followupDays) + ' days' : '—') + '</b></div>' : '') +
     '</div></div>';
   const ch = $('#caseHistory');
-  if (ch) ch.innerHTML = STATE.cases.map(x => '<div class="list-item"><div class="li-main"><b>' + esc(x.chiefComplaint) + '</b><small>' + esc(x.duration || '') + ' • ' + esc(x.severity || '') + ' • ' + fmtDT(x.createdAt) + '</small></div>' + (x.status === 'reviewed' ? '<span class="chip green">🟩 Dr. ' + esc(x.doctorName || '') + '</span>' : '<span class="chip amber">🟡 Waiting</span>') + '</div>').join('') || '<p class="muted">No case history yet.</p>';
+  if (ch) ch.innerHTML = STATE.cases.map(x => '<div class="list-item"><div class="li-main"><b>' + esc(x.chiefComplaint) + '</b><small>' + esc(x.duration || '') + ' • ' + esc(x.severity || '') + ' • ' + fmtDT(x.createdAt) + '</small></div><div class="li-actions">' + (x.status === 'reviewed' ? '<span class="chip green">🟩 Dr. ' + esc(x.doctorName || '') + '</span>' : '<span class="chip amber">🟡 Waiting</span>') + '<button class="btn primary sm" data-act="view-case" data-id="' + x.id + '">👁️ View Details</button></div></div>').join('') || '<p class="muted">No case history yet.</p>';
   $('#secPersonal').innerHTML = kvRows([['Name', ME.name], ['DOB / Age', (ME.dob || '—') + ' (' + ageOf(ME.dob) + ')'], ['Gender', ME.gender], ['Contact', ME.phone], ['Address', ME.address], ['Emergency Contact', (ME.emergencyName || '') + ' ' + (ME.emergencyPhone || '')], ['Aadhaar', maskAadhaar(ME.aadhaar)], ['Health ID', ME.healthId]]);
   $('#secMedical').innerHTML = kvRows([['Existing Conditions', ME.conditions || 'None'], ['Previous Illnesses / Accidents', ME.accidents || 'None'], ['Family History', ME.familyHistory || '—']]);
   $('#secAllergy').innerHTML = kvRows([['Allergies', ME.allergies || 'None recorded']]);
@@ -717,6 +739,34 @@ function renderMyCase() {
   $('#secMeds').innerHTML = STATE.meds.map(m => '<li><span>' + esc(m.name) + ' <small class="muted">' + esc(m.dosage || '') + ' • ' + esc(m.prescribedBy || '') + '</small></span>' + medChip(m) + '</li>').join('') || '<li class="muted">—</li>';
   $('#secVisits').innerHTML = STATE.timeline.filter(tt => tt.type === 'case' || tt.type === 'consult').map(tt => '<li><span>' + (tt.icon || '🏥') + ' ' + esc(tt.title) + ' <small class="muted">' + esc(tt.description || '') + '</small></span><small class="muted">' + fmtD(tt.date) + '</small></li>').join('') || '<li class="muted">No visits yet</li>';
 }
+/* ----- PAST CASE DETAIL VIEWER (patient) ----- */
+async function openCaseDetail(id) {
+  let c = STATE.cases.find(x => x.id === id);
+  if (!c) { try { const s = await db.collection('cases').doc(id).get(); if (s.exists) c = { id: s.id, ...s.data() }; } catch (e) {} }
+  if (!c) return toast('⚠️ Case not found.');
+  const row = (k, v) => '<div class="krow"><span>' + k + '</span><b>' + esc(v || '—') + '</b></div>';
+  let html = '<h3>📋 Case Details</h3><p class="muted sm-txt">Submitted: ' + fmtDT(c.createdAt) + ' • ' + (c.status === 'reviewed' ? '🟩 Reviewed by Dr. ' + esc(c.doctorName || '') : '🟡 Waiting for Doctor Review') + '</p>' +
+    '<h4 style="margin-top:10px">🟦 What you reported</h4><div class="kv">' +
+    row('1️⃣ Chief Complaint', c.chiefComplaint) + row('2️⃣ Symptoms', c.symptoms) + row('🧍 Symptom Area', c.area) +
+    row('3️⃣ Since when', c.duration) + row('Severity', c.severity) + row('4️⃣ Previous treatment taken', c.prevTreatment) +
+    row('5️⃣ Existing conditions', c.existing) + row('6️⃣ Current medicines', c.currentMeds) +
+    row('7️⃣ Allergies', c.allergyNote) + row('8️⃣ Previous surgery', c.surgeryNote) +
+    row('9️⃣ Family history', c.familyHistory) + row('🔟 Other / Questions', c.other) +
+    '</div>';
+  if (c.status === 'reviewed') {
+    html += '<h4 style="margin-top:12px">🟩 Doctor-Verified — Dr. ' + esc(c.doctorName || '') + '</h4><div class="kv">' +
+      row('Clinical Notes', c.doctorNotes) + row('Observations', c.observations) +
+      row('💊 Prescription', c.prescriptionText) + row('🧪 Recommended Tests', c.tests) +
+      row('🔔 Follow-up', c.followupDays ? 'after ' + c.followupDays + ' days' : '—') +
+      row('💰 Consultation Fee', c.fee ? '₹' + c.fee : '—') +
+      '</div>';
+  } else {
+    html += '<p class="hint" style="margin-top:10px">🟡 Waiting for doctor review — verified details will appear here once reviewed.</p>';
+  }
+  html += modalCloseBtn();
+  showModal(html);
+}
+document.addEventListener('click', e => { const vc = e.target.closest('[data-act="view-case"]'); if (vc) openCaseDetail(vc.dataset.id); });
 
 /* ----- MEDICINES (patient self-add restored) ----- */
 function renderMeds() {
@@ -899,9 +949,17 @@ function renderUpcoming() {
   const meds = STATE.meds.filter(m => m.active !== false);
   um.innerHTML = meds.map(m => '<div class="list-item"><div class="li-main"><b>💊 ' + esc(m.name) + '</b><small>' + esc(m.dosage || '') + '</small></div>' + medChip(m) + '</div>').join('') || '<p class="muted">No active medicines.</p>';
 }
+/* ----- TIMELINE (FIX: shows date + TIME, newest first) ----- */
+function tlTime(tt) {
+  if (!tt || !tt.createdAt) return '';
+  const d = new Date(tt.createdAt);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
 function renderTimeline() {
   const el = $('#tlList'); if (!el || ROLE !== 'patient') return;
-  el.innerHTML = STATE.timeline.map(tt => '<div class="tl-item"><span class="tl-year">' + fmtD(tt.date) + '</span><b>' + (tt.icon || '•') + ' ' + esc(tt.title) + '</b><p>' + esc(tt.description || '') + '</p></div>').join('') || '<p class="muted">Submit your first case to start your journey 🚀</p>';
+  const list = STATE.timeline.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+  el.innerHTML = list.map(tt => '<div class="tl-item"><span class="tl-year">📅 ' + fmtD(tt.date) + (tlTime(tt) ? ' &nbsp;🕒 ' + tlTime(tt) : '') + '</span><b>' + (tt.icon || '•') + ' ' + esc(tt.title) + '</b><p>' + esc(tt.description || '') + '</p></div>').join('') || '<p class="muted">Submit your first case to start your journey 🚀</p>';
 }
 
 /* ----- RICH QR ----- */
@@ -1033,7 +1091,7 @@ function renderVitals() {
     ['⚖️', 'Weight', (lv && num(lv.wt) != null) ? num(lv.wt) : '—', 'kg'],
     ['📋', 'Symptoms', lv ? (lv.sym || '—') : '—', '']
   ];
-  const or = $('#ovRows');
+const or = $('#ovRows');
   if (or) or.innerHTML = rows.map(([i, n, v, u]) => '<div class="ov-row"><span class="ov-ico">' + i + '</span><span class="ov-name">' + n + '</span><span class="ov-val">' + esc(v) + (u ? '<small>' + u + '</small>' : '') + '</span></div>').join('');
   const rc = $('#recentVitals');
   if (rc) rc.innerHTML = STATE.vitals.slice(0, 6).map(v => { const p = parseBp(v.bp);
@@ -1077,7 +1135,7 @@ const CB_KB = [
  [['who entered','who added','health data source'],['🩺 All health data is entered **only by doctors**. Each record shows "by Dr. [name]" and the exact time.']],
  [['emergency','sos','accident now','urgent'],['🚑 Tap the red **EMERGENCY** button (dashboard or sidebar). It shows only critical info: blood group, allergies, medicines, conditions & emergency contact.']],
  [['emergency contact'],['📞 Your emergency contact is shown in Emergency Mode and in your QR. Update it in **Settings → Edit Profile**.']],
- [['blood group','blood type'],['🩸 Your blood group on record: **' ,'dynamicBlood','** — update it in Settings if it\'s wrong.']],
+ [['blood group','blood type'],['🩸 Your blood group on record: **dynamicBlood** — update it in Settings if it\'s wrong.']],
  [['allergy','allergic'],['⚠️ Your recorded allergies: check **My Case → Allergy History**. They are also shown to doctors and in Emergency Mode.']],
  [['surgery','operation history','past operation'],['🔪 **My Case → Surgery History** lists all recorded operations with year, hospital and doctor.']],
  [['accident','injury history'],['🚗 Accident history is in **My Case → Medical History**.']],
@@ -1123,14 +1181,12 @@ const CB_KB = [
 ];
 function chatbotAnswer(q) {
   q = (q || '').toLowerCase();
-  // Dynamic record-based answers first
   const next = STATE.appts.filter(a => a.status === 'upcoming' && a.date >= todayStr()).sort((a, b) => a.date.localeCompare(b.date))[0];
   if ((q.includes('next appointment') || q.includes('my appointment')) && next) {
     const n = queueNumberOf(next);
     return '📅 Your next appointment: <b>' + esc(next.doctorName) + '</b> on <b>' + fmtD(next.date) + '</b> at <b>' + esc(next.time) + '</b>' + (n ? ' — 🎟️ Queue #' + n : '') + '.';
   }
   if (q.includes('dynamicblood')) return '🩸 Blood group on record: <b>' + esc(ME.bloodGroup || 'not recorded') + '</b>';
-  // Keyword-score the KB
   let best = null, bestScore = 0;
   CB_KB.forEach(([keys, ans]) => {
     let score = 0;
@@ -1609,7 +1665,7 @@ function bindHospital() {
       STATE.reportsAll = rs.docs.map(x => ({ id: x.id, ...x.data() })).sort((a, b) => b.createdAt - a.createdAt);
       STATE.doctors = ds.docs.map(x => ({ id: x.id, ...x.data() }));
       STATE.patients = ps.docs.map(x => ({ id: x.id, ...x.data() }));
-      renderHospital(); renderHPatients(); renderHDoctors(); renderHCases(); renderHMeds(); renderHDocs(); renderHAppts(); renderHBilling();
+      renderHospital(); renderHPatients(); renderHDoctors(); renderHCases(); renderHMeds(); renderHDocs(); renderHAppts(); renderHBilling(); fillUploadDropdowns();
     } catch (e) { console.error(e); }
     inFlight = false;
     if (queued) { queued = false; refresh(); }
@@ -1646,7 +1702,6 @@ function renderHAppts() {
   if (sum) sum.innerHTML = [
     ['mc-blue', '📅', 'Total', total], ['mc-green', '✅', 'Completed', completed], ['mc-red', '🕒', 'Incomplete (Upcoming)', upcoming]
   ].map(([cls, ico, label, val]) => '<div class="mini-card"><span class="mc-ico ' + cls + '">' + ico + '</span><span><span class="mc-label">' + label + '</span><b>' + val + '</b></span></div>').join('');
-  // Group by date
   const byDate = {};
   STATE.appts.forEach(a => { const d = a.date || 'Unknown'; (byDate[d] = byDate[d] || []).push(a); });
   const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
@@ -1751,7 +1806,19 @@ document.addEventListener('click', async e => {
     toast('✅ Bill added — visible in patient portal in real time');
   } catch (err) { toast('⚠️ ' + errMsg(err)); }
 });
-/* ----- HOSPITAL UPLOAD RESULT (with photo) ----- */
+/* ----- HOSPITAL UPLOAD RESULT (FIX: Patient + Doctor dropdowns) ----- */
+function fillUploadDropdowns() {
+  if (ROLE !== 'hospital') return;
+  const psel = $('#huHid'), dsel = $('#huDoctor');
+  if (!psel || !dsel) return;
+  const pv = psel.value, dv = dsel.value;
+  const pOpts = (STATE.patients || []).map(p => '<option value="' + p.id + '">' + esc(p.name || 'Patient') + ' — ' + esc(p.healthId || '') + '</option>').join('');
+  psel.innerHTML = '<option value="">— Select patient —</option>' + (pOpts || '<option value="" disabled>No patients registered yet</option>');
+  const dOpts = (STATE.doctors || []).map(d => '<option value="Dr. ' + esc(d.name || '') + '">Dr. ' + esc(d.name || '') + (d.specialization ? ' — ' + esc(d.specialization) : '') + '</option>').join('');
+  dsel.innerHTML = '<option value="">— Select doctor —</option>' + (dOpts || '<option value="" disabled>No doctors registered yet</option>');
+  if (pv && (STATE.patients || []).some(p => p.id === pv)) psel.value = pv;
+  if (dv && (STATE.doctors || []).some(d => 'Dr. ' + d.name === dv)) dsel.value = dv;
+}
 document.addEventListener('change', async e => {
   if (!e.target || e.target.id !== 'huFile') return;
   const file = e.target.files && e.target.files[0];
@@ -1765,14 +1832,14 @@ document.addEventListener('change', async e => {
 });
 document.addEventListener('click', async e => {
   if (!e.target.closest('[data-act="h-upload"]')) return;
-  const hid = $('#huHid').value.trim().toUpperCase();
+  const pid = $('#huHid').value;
   const title = $('#huTitle').value.trim();
-  if (!hid || !title) return toast('⚠️ Health ID and title are required.');
+  if (!pid) return toast('⚠️ Please select a patient from the dropdown.');
+  if (!title) return toast('⚠️ Result title is required.');
+  const p = (STATE.patients || []).find(x => x.id === pid);
+  if (!p) return toast('⚠️ Patient not found — please reselect.');
   try {
-    const ps = await db.collection('users').where('healthId', '==', hid).limit(1).get();
-    if (ps.empty) return toast('⚠️ Health ID not found.');
-    const p = ps.docs[0];
-    const rec = { patientId: p.id, patientName: p.data().name, healthId: p.data().healthId, title, type: $('#huType').value, date: $('#huDate').value || todayStr(), hospital: ME.name, doctor: $('#huDoctor').value.trim(), note: $('#huNote').value.trim(), verified: true, uploadedBy: ME.name, uploadedByRole: 'hospital', createdAt: Date.now() };
+    const rec = { patientId: p.id, patientName: p.name, healthId: p.healthId, title, type: $('#huType').value, date: $('#huDate').value || todayStr(), hospital: ME.name, doctor: $('#huDoctor').value, note: $('#huNote').value.trim(), verified: true, uploadedBy: ME.name, uploadedByRole: 'hospital', createdAt: Date.now() };
     if (pendingHu) { rec.fileData = pendingHu; rec.source = 'scan'; }
     await db.collection('reports').add(rec);
     await db.collection('timeline').add({ patientId: p.id, date: todayStr(), type: 'report', icon: '🧪', title, description: $('#huType').value + ' — ' + ME.name, createdAt: Date.now() });
